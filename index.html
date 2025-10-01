@@ -394,9 +394,9 @@
         
         if (data.started && state.screen === 'lobby') {
           state.screen = 'game';
+          state.currentQuestion = data.currentQuestion || 0;
           render();
           playSound();
-          if (state.isHost) startTimer();
         }
         
         if (data.currentQuestion !== state.currentQuestion && state.screen === 'game') {
@@ -409,14 +409,14 @@
           playSound();
         }
         
-        if (data.winner && state.screen === 'game') {
+        if (data.winner && state.screen === 'game' && !state.answered) {
           state.winner = data.winner;
           state.answered = true;
-          state.correctAnswer = ANIMALS[data.currentQuestion].emoji;
+          state.correctAnswer = ANIMALS[state.currentQuestion || 0].emoji;
           render();
         }
         
-        if (data.ended && state.screen === 'game') {
+        if (data.ended && state.screen !== 'results') {
           state.screen = 'results';
           render();
         }
@@ -483,41 +483,76 @@
 
     function handleAnswer(emoji) {
       if (state.answered) return;
-      clearInterval(state.timer);
       
       const animal = ANIMALS[state.currentQuestion];
       const isCorrect = emoji === animal.emoji;
-      state.answered = true;
-      state.correctAnswer = animal.emoji;
       
       if (state.gameMode === 'real' && database) {
         const roomRef = database.ref('rooms/' + state.roomCode);
-        roomRef.once('value').then(snapshot => {
-          const data = snapshot.val();
-          if (isCorrect && !data.winner) {
-            const newScores = { ...data.scores };
-            newScores[state.myPlayerId] = (newScores[state.myPlayerId] || 0) + 1;
-            roomRef.update({ winner: state.playerName, scores: newScores });
-            state.winner = state.playerName;
-            state.scores = newScores;
-          }
-          render();
-        });
         
-        if (state.isHost) {
-          setTimeout(() => {
-            if (state.currentQuestion < ANIMALS.length - 1) {
-              roomRef.update({ 
-                currentQuestion: state.currentQuestion + 1, 
-                winner: null, 
-                timeLeft: 5 
+        // Use transaction to ensure only first correct answer wins
+        roomRef.transaction(function(room) {
+          if (!room) return room;
+          
+          // If there's already a winner for this question, don't update
+          if (room.winner) {
+            return; // Abort transaction
+          }
+          
+          // If this is the first correct answer
+          if (isCorrect) {
+            room.winner = state.playerName;
+            room.winnerId = state.myPlayerId;
+            room.scores = room.scores || {};
+            room.scores[state.myPlayerId] = (room.scores[state.myPlayerId] || 0) + 1;
+          }
+          
+          return room;
+        }, function(error, committed, snapshot) {
+          if (error) {
+            console.error('Transaction error:', error);
+          } else if (committed) {
+            const data = snapshot.val();
+            state.answered = true;
+            state.correctAnswer = animal.emoji;
+            state.winner = data.winner;
+            state.scores = data.scores;
+            render();
+            
+            // Auto-progress after 2 seconds (any player can trigger this)
+            setTimeout(() => {
+              roomRef.once('value').then(snap => {
+                const currentData = snap.val();
+                if (!currentData) return;
+                
+                // Only progress if we haven't moved to next question yet
+                if (currentData.currentQuestion === state.currentQuestion) {
+                  if (state.currentQuestion < ANIMALS.length - 1) {
+                    roomRef.update({ 
+                      currentQuestion: state.currentQuestion + 1, 
+                      winner: null,
+                      winnerId: null,
+                      timeLeft: 5 
+                    });
+                  } else {
+                    roomRef.update({ ended: true });
+                  }
+                }
               });
-            } else {
-              roomRef.update({ ended: true });
-            }
-          }, 2000);
-        }
+            }, 2000);
+          } else {
+            // Transaction aborted (someone else answered first)
+            state.answered = true;
+            state.correctAnswer = animal.emoji;
+            render();
+          }
+        });
       } else {
+        // Simulated mode
+        clearInterval(state.timer);
+        state.answered = true;
+        state.correctAnswer = animal.emoji;
+        
         if (isCorrect) {
           state.scores[state.myPlayerId]++;
           state.winner = state.playerName;
