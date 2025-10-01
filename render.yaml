@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: guess-the-animal
+    env: static
+    buildCommand: ""
+    staticPublishPath: .
