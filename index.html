@@ -3,19 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guess the Animal - Multiplayer Game</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <title>Guess the Animal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .bg-gradient { min-height: 100vh; background: linear-gradient(135deg, #34d399 0%, #3b82f6 50%, #a855f7 100%); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .card { background: white; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); padding: 2rem; max-width: 28rem; width: 100%; }
+    .card-lg { max-width: 64rem; }
+    .text-center { text-align: center; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-6 { margin-bottom: 1.5rem; }
+    .mb-8 { margin-bottom: 2rem; }
+    h1 { font-size: 2.25rem; font-weight: bold; color: #1f2937; }
+    h2 { font-size: 1.875rem; font-weight: bold; color: #1f2937; }
+    .text-gray { color: #6b7280; }
+    .text-xl { font-size: 1.25rem; }
+    input { width: 100%; padding: 0.75rem 1rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1.125rem; outline: none; }
+    input:focus { border-color: #3b82f6; }
+    button { width: 100%; padding: 1rem 1.5rem; font-weight: bold; border-radius: 0.5rem; border: none; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+    button:disabled { background: #d1d5db; cursor: not-allowed; }
+    .btn-purple { background: #a855f7; color: white; }
+    .btn-purple:hover:not(:disabled) { background: #9333ea; }
+    .btn-blue { background: #3b82f6; color: white; }
+    .btn-blue:hover { background: #2563eb; }
+    .player-card { background: #f3f4f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .avatar { width: 2.5rem; height: 2.5rem; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    .badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+    .badge-purple { background: #e9d5ff; color: #7e22ce; }
+    .badge-green { background: #bbf7d0; color: #15803d; }
+    .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    .game-header { background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; }
+    .score-box { text-align: center; background: #f9fafb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
+    .score-name { font-size: 0.75rem; color: #6b7280; }
+    .score-value { font-size: 1.25rem; font-weight: bold; color: #3b82f6; }
+    .sound-box { background: #fef3c7; border: 4px solid #fbbf24; border-radius: 0.75rem; padding: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    .timer { font-size: 2.25rem; font-weight: bold; color: #ef4444; }
+    .winner-box { background: #dcfce7; border: 2px solid #22c55e; border-radius: 0.5rem; padding: 0.75rem; text-align: center; margin-bottom: 1rem; color: #15803d; font-weight: bold; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .emoji-btn { background: white; border-radius: 0.75rem; padding: 2rem; font-size: 4rem; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; border: none; }
+    .emoji-btn:hover:not(:disabled) { transform: scale(1.05); }
+    .emoji-btn:disabled { cursor: not-allowed; }
+    .emoji-correct { box-shadow: 0 0 0 4px #22c55e; background: #dcfce7; }
+    .emoji-wrong { opacity: 0.5; }
+    .result-item { background: #f3f4f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .result-rank { font-size: 1.5rem; font-weight: bold; color: #6b7280; margin-right: 0.75rem; }
+    .result-score { font-size: 1.5rem; font-weight: bold; color: #3b82f6; }
+    .trophy { font-size: 4rem; }
+    .flex { display: flex; }
+    .gap-3 { gap: 0.75rem; }
+    .flex-wrap { flex-wrap: wrap; }
+    .justify-between { justify-content: space-between; }
+    .items-center { align-items: center; }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="app"></div>
   
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-    const { Volume2, Trophy, Users, Play, Wifi, Bot, Copy, Check, AlertCircle } = lucide;
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyApv5F-IZHODQdRTC4mhRyn8tucQ7-nbMc",
+      authDomain: "guess-the-animal-6bb41.firebaseapp.com",
+      databaseURL: "https://guess-the-animal-6bb41-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "guess-the-animal-6bb41",
+      storageBucket: "guess-the-animal-6bb41.firebasestorage.app",
+      messagingSenderId: "1075279371321",
+      appId: "1:1075279371321:web:2281f625f4352f6c7281e8"
+    };
+    
+    let firebaseApp, database;
+    try {
+      firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+      database = firebase.database();
+    } catch (error) {
+      console.error('Firebase init error:', error);
+    }
 
     const ANIMALS = [
       { name: 'Lion', emoji: '🦁', options: ['🦁', '🐯', '🐻', '🐺', '🦊', '🐱'] },
@@ -30,506 +95,486 @@
       { name: 'Monkey', emoji: '🐵', options: ['🐵', '🦍', '🦧', '🐻', '🦝', '🐨'] }
     ];
 
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyApv5F-IZHODQdRTC4mhRyn8tucQ7-nbMc",
-      authDomain: "guess-the-animal-6bb41.firebaseapp.com",
-      databaseURL: "https://guess-the-animal-6bb41-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "guess-the-animal-6bb41",
-      storageBucket: "guess-the-animal-6bb41.firebasestorage.app",
-      messagingSenderId: "1075279371321",
-      appId: "1:1075279371321:web:2281f625f4352f6c7281e8"
+    let state = {
+      screen: 'menu',
+      gameMode: null,
+      playerName: '',
+      players: [],
+      currentQuestion: 0,
+      timeLeft: 5,
+      scores: {},
+      answered: false,
+      correctAnswer: null,
+      winner: null,
+      myPlayerId: '',
+      timer: null,
+      roomCode: '',
+      isHost: false,
+      copied: false
     };
 
-    function GuessTheAnimal() {
-      const [screen, setScreen] = useState('menu');
-      const [gameMode, setGameMode] = useState(null);
-      const [playerName, setPlayerName] = useState('');
-      const [players, setPlayers] = useState([]);
-      const [currentQuestion, setCurrentQuestion] = useState(0);
-      const [timeLeft, setTimeLeft] = useState(5);
-      const [scores, setScores] = useState({});
-      const [answered, setAnswered] = useState(false);
-      const [correctAnswer, setCorrectAnswer] = useState(null);
-      const [winner, setWinner] = useState(null);
-      const [gameStarted, setGameStarted] = useState(false);
-      const [soundPlayed, setSoundPlayed] = useState(false);
-      const [roomCode, setRoomCode] = useState('');
-      const [myPlayerId, setMyPlayerId] = useState('');
-      const [isHost, setIsHost] = useState(false);
-      const [copied, setCopied] = useState(false);
-      const firebaseInitialized = useRef(false);
-      const dbRef = useRef(null);
-      const unsubscribes = useRef([]);
-
-      useEffect(() => {
-        if (firebaseInitialized.current) return;
-        const initFirebase = async () => {
-          try {
-            const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-            const { getDatabase, ref, set, onValue, update, remove, get } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
-            const app = initializeApp(FIREBASE_CONFIG);
-            const database = getDatabase(app);
-            dbRef.current = { ref, set, onValue, update, remove, get, database };
-            firebaseInitialized.current = true;
-          } catch (error) {
-            console.error('Firebase initialization error:', error);
-          }
-        };
-        initFirebase();
-        return () => unsubscribes.current.forEach(unsub => unsub());
-      }, []);
-
-      const generateRoomCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-      const generatePlayerId = () => `player-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-      const findSimulatedMatch = (hostPlayer) => {
-        const aiNames = ['Alex', 'Jordan', 'Casey', 'Morgan', 'Riley'];
-        const numAI = Math.floor(Math.random() * 2) + 1;
-        const aiPlayers = [];
-        for (let i = 0; i < numAI; i++) {
-          aiPlayers.push({ id: `ai-${i}`, name: aiNames[i], isAI: true });
-        }
-        return [hostPlayer, ...aiPlayers];
-      };
-
-      const startSimulatedGame = () => {
-        if (!playerName.trim()) return;
-        const playerId = generatePlayerId();
-        const player = { id: playerId, name: playerName, isAI: false };
-        const matchedPlayers = findSimulatedMatch(player);
-        setMyPlayerId(playerId);
-        setPlayers(matchedPlayers);
-        setIsHost(true);
-        const initialScores = {};
-        matchedPlayers.forEach(p => { initialScores[p.id] = 0; });
-        setScores(initialScores);
-        setScreen('lobby');
-        setTimeout(() => { setGameStarted(true); setScreen('game'); }, 2000);
-      };
-
-      const createRoom = async () => {
-        if (!playerName.trim()) return;
-        if (!dbRef.current) { alert('Firebase is still initializing. Please try again.'); return; }
-        const code = generateRoomCode();
-        const playerId = generatePlayerId();
-        const player = { id: playerId, name: playerName, isAI: false };
-        const roomData = {
-          host: playerId,
-          players: { [playerId]: player },
-          scores: { [playerId]: 0 },
-          currentQuestion: 0,
-          started: false,
-          answers: {},
-          winner: null,
-          timeLeft: 5
-        };
-        try {
-          const { ref, set, database } = dbRef.current;
-          await set(ref(database, `rooms/${code}`), roomData);
-          setRoomCode(code);
-          setMyPlayerId(playerId);
-          setIsHost(true);
-          setPlayers([player]);
-          setScores({ [playerId]: 0 });
-          setScreen('lobby');
-          listenToRoom(code);
-        } catch (error) {
-          console.error('Error creating room:', error);
-          alert('Error creating room. Please check Firebase configuration.');
-        }
-      };
-
-      const joinRoom = async () => {
-        if (!playerName.trim() || !roomCode.trim()) { alert('Please enter your name and room code!'); return; }
-        if (!dbRef.current) { alert('Firebase is still initializing.'); return; }
-        const code = roomCode.toUpperCase();
-        const playerId = generatePlayerId();
-        try {
-          const { ref, get, update, database } = dbRef.current;
-          const roomRef = ref(database, `rooms/${code}`);
-          const snapshot = await get(roomRef);
-          if (!snapshot.exists()) { alert('Room not found!'); return; }
-          const roomData = snapshot.val();
-          if (roomData.started) { alert('Game already started!'); return; }
-          const player = { id: playerId, name: playerName, isAI: false };
-          await update(roomRef, { [`players/${playerId}`]: player, [`scores/${playerId}`]: 0 });
-          setMyPlayerId(playerId);
-          setIsHost(false);
-          setRoomCode(code);
-          setScreen('lobby');
-          listenToRoom(code);
-        } catch (error) {
-          console.error('Error joining room:', error);
-          alert('Error joining room. Please try again.');
-        }
-      };
-
-      const listenToRoom = (code) => {
-        if (!dbRef.current) return;
-        const { ref, onValue, database } = dbRef.current;
-        const roomRef = ref(database, `rooms/${code}`);
-        const unsubscribe = onValue(roomRef, (snapshot) => {
-          if (!snapshot.exists()) return;
-          const data = snapshot.val();
-          const playersList = Object.values(data.players || {});
-          setPlayers(playersList);
-          setScores(data.scores || {});
-          if (data.started && !gameStarted) { setGameStarted(true); setScreen('game'); }
-          if (data.currentQuestion !== currentQuestion) {
-            setCurrentQuestion(data.currentQuestion);
-            setTimeLeft(5);
-            setAnswered(false);
-            setCorrectAnswer(null);
-            setWinner(null);
-            setSoundPlayed(false);
-          }
-          if (data.winner) {
-            setWinner(data.winner);
-            setAnswered(true);
-            setCorrectAnswer(ANIMALS[data.currentQuestion].emoji);
-          }
-          if (data.ended) { setScreen('results'); }
-        });
-        unsubscribes.current.push(unsubscribe);
-      };
-
-      const startRealGame = async () => {
-        if (players.length < 2) { alert('Need at least 2 players to start!'); return; }
-        if (!dbRef.current) return;
-        try {
-          const { ref, update, database } = dbRef.current;
-          await update(ref(database, `rooms/${roomCode}`), { started: true, currentQuestion: 0 });
-        } catch (error) {
-          console.error('Error starting game:', error);
-        }
-      };
-
-      const copyRoomCode = () => {
-        navigator.clipboard.writeText(roomCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      };
-
-      useEffect(() => {
-        if (screen === 'game' && gameStarted && !answered && isHost && gameMode === 'real') {
-          const timer = setInterval(async () => {
-            setTimeLeft(prev => {
-              const newTime = prev - 1;
-              if (newTime <= 0) { clearInterval(timer); handleTimeout(); return 0; }
-              if (dbRef.current) {
-                const { ref, update, database } = dbRef.current;
-                update(ref(database, `rooms/${roomCode}`), { timeLeft: newTime });
-              }
-              return newTime;
-            });
-          }, 1000);
-          return () => clearInterval(timer);
-        }
-      }, [screen, gameStarted, answered, isHost, gameMode, currentQuestion]);
-
-      useEffect(() => {
-        if (screen === 'game' && gameStarted && !answered && gameMode === 'simulated') {
-          const timer = setInterval(() => {
-            setTimeLeft(prev => {
-              if (prev <= 1) { clearInterval(timer); handleTimeout(); return 0; }
-              return prev - 1;
-            });
-          }, 1000);
-          return () => clearInterval(timer);
-        }
-      }, [screen, gameStarted, answered, gameMode, currentQuestion]);
-
-      useEffect(() => {
-        if (screen === 'game' && !soundPlayed) {
-          playSound();
-          setSoundPlayed(true);
-        }
-      }, [screen, currentQuestion, soundPlayed]);
-
-      const playSound = () => {
-        const utterance = new SpeechSynthesisUtterance(ANIMALS[currentQuestion].name);
-        utterance.rate = 0.8;
-        utterance.pitch = 0.8;
-        speechSynthesis.speak(utterance);
-      };
-
-      const handleTimeout = async () => {
-        if (gameMode === 'simulated') {
-          const aiAnswered = players.find(p => p.isAI && Math.random() > 0.3);
-          if (aiAnswered) {
-            const newScores = { ...scores };
-            newScores[aiAnswered.id] += 1;
-            setScores(newScores);
-            setWinner(aiAnswered.name);
-          }
-        }
-        setAnswered(true);
-        setCorrectAnswer(ANIMALS[currentQuestion].emoji);
-        setTimeout(() => { nextQuestion(); }, 2000);
-      };
-
-      const handleAnswer = async (selectedEmoji) => {
-        if (answered) return;
-        const isCorrect = selectedEmoji === ANIMALS[currentQuestion].emoji;
-        setAnswered(true);
-        setCorrectAnswer(ANIMALS[currentQuestion].emoji);
+    function render() {
+      const app = document.getElementById('app');
+      
+      if (state.screen === 'menu') {
+        app.innerHTML = `
+          <div class="bg-gradient">
+            <div class="card">
+              <div class="text-center mb-8">
+                <h1 class="mb-2">🎮 Guess the Animal</h1>
+                <p class="text-gray">Multiplayer Sound Game</p>
+              </div>
+              <div class="mb-6">
+                <input type="text" id="nameInput" placeholder="Enter your name" maxlength="20">
+              </div>
+              <div class="mb-4">
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem;">Choose Game Mode:</h3>
+                <button id="aiBtn" class="btn-purple mb-4" disabled style="margin-bottom: 0.75rem;">
+                  🤖 Play with AI
+                  <div style="font-size: 0.75rem; opacity: 0.8;">Instant start, AI opponents</div>
+                </button>
+                <button id="multiBtn" class="btn-blue" disabled>
+                  📡 Real Multiplayer
+                  <div style="font-size: 0.75rem; opacity: 0.8;">Play across devices</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
         
-        if (gameMode === 'real' && dbRef.current) {
-          const { ref, get, update, database } = dbRef.current;
-          const roomRef = ref(database, `rooms/${roomCode}`);
-          const snapshot = await get(roomRef);
-          const data = snapshot.val();
-          if (isCorrect && !data.winner) {
-            const newScores = { ...data.scores };
-            newScores[myPlayerId] = (newScores[myPlayerId] || 0) + 1;
-            await update(roomRef, { winner: playerName, scores: newScores });
-            setWinner(playerName);
-            setScores(newScores);
-          }
-        } else if (gameMode === 'simulated') {
-          if (isCorrect && !winner) {
-            const newScores = { ...scores };
-            newScores[myPlayerId] = (newScores[myPlayerId] || 0) + 1;
-            setScores(newScores);
-            setWinner(playerName);
-          } else {
-            const aiWinner = players.find(p => p.isAI);
-            if (aiWinner) {
-              const newScores = { ...scores };
-              newScores[aiWinner.id] += 1;
-              setScores(newScores);
-              setWinner(aiWinner.name);
-            }
-          }
-        }
-        if (isHost) { setTimeout(() => { nextQuestion(); }, 2000); }
-      };
-
-      const nextQuestion = async () => {
-        if (currentQuestion < ANIMALS.length - 1) {
-          const nextQ = currentQuestion + 1;
-          if (gameMode === 'real' && isHost && dbRef.current) {
-            const { ref, update, database } = dbRef.current;
-            await update(ref(database, `rooms/${roomCode}`), { currentQuestion: nextQ, winner: null, timeLeft: 5 });
-          } else {
-            setCurrentQuestion(nextQ);
-            setTimeLeft(5);
-            setAnswered(false);
-            setCorrectAnswer(null);
-            setWinner(null);
-            setSoundPlayed(false);
-          }
-        } else {
-          if (gameMode === 'real' && isHost && dbRef.current) {
-            const { ref, update, database } = dbRef.current;
-            await update(ref(database, `rooms/${roomCode}`), { ended: true });
-          }
-          setScreen('results');
-        }
-      };
-
-      const resetGame = async () => {
-        unsubscribes.current.forEach(unsub => unsub());
-        unsubscribes.current = [];
-        if (gameMode === 'real' && isHost && roomCode && dbRef.current) {
-          try {
-            const { ref, remove, database } = dbRef.current;
-            await remove(ref(database, `rooms/${roomCode}`));
-          } catch (error) {
-            console.error('Error cleaning up room:', error);
-          }
-        }
-        setScreen('menu');
-        setGameMode(null);
-        setPlayerName('');
-        setPlayers([]);
-        setCurrentQuestion(0);
-        setTimeLeft(5);
-        setScores({});
-        setAnswered(false);
-        setCorrectAnswer(null);
-        setWinner(null);
-        setGameStarted(false);
-        setSoundPlayed(false);
-        setRoomCode('');
-        setMyPlayerId('');
-        setIsHost(false);
-        setCopied(false);
-      };
-
-      if (screen === 'menu') {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-              <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">🎮 Guess the Animal</h1>
-                <p className="text-gray-600">Multiplayer Sound Game</p>
+        const input = document.getElementById('nameInput');
+        const aiBtn = document.getElementById('aiBtn');
+        const multiBtn = document.getElementById('multiBtn');
+        input.addEventListener('input', (e) => {
+          state.playerName = e.target.value;
+          aiBtn.disabled = !e.target.value.trim();
+          multiBtn.disabled = !e.target.value.trim();
+        });
+        aiBtn.addEventListener('click', () => startSimulatedGame());
+        multiBtn.addEventListener('click', () => { state.screen = 'realMode'; render(); });
+      }
+      
+      else if (state.screen === 'realMode') {
+        app.innerHTML = `
+          <div class="bg-gradient">
+            <div class="card">
+              <div class="text-center mb-6">
+                <h2 class="mb-2">Real Multiplayer</h2>
+                <p class="text-gray">Play with friends online</p>
               </div>
-              <div className="mb-6">
-                <input type="text" placeholder="Enter your name" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-lg" maxLength={20} />
-              </div>
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">Choose Game Mode:</h3>
-                <div className="space-y-3">
-                  <button onClick={() => { setGameMode('simulated'); startSimulatedGame(); }} disabled={!playerName.trim()} className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white font-bold py-4 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-                    <Bot size={24} />
-                    <div className="text-left">
-                      <div>Play with AI (Simulated)</div>
-                      <div className="text-xs opacity-80">Instant start, AI opponents</div>
-                    </div>
-                  </button>
-                  <button onClick={() => { setGameMode('real'); setScreen('realMode'); }} disabled={!playerName.trim()} className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-                    <Wifi size={24} />
-                    <div className="text-left">
-                      <div>Real Multiplayer</div>
-                      <div className="text-xs opacity-80">Play across devices</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
+              <button class="btn-blue mb-4" onclick="createRoom()">👥 Create Room</button>
+              <div style="text-align: center; margin: 1rem 0; color: #6b7280;">or</div>
+              <input type="text" id="roomCodeInput" placeholder="Enter room code" maxlength="6" style="text-transform: uppercase; text-align: center; font-family: monospace; margin-bottom: 0.75rem;">
+              <button class="btn-blue mb-4" onclick="joinRoom()" style="background: #22c55e;">▶️ Join Room</button>
+              <button class="btn-blue" onclick="backToMenu()" style="background: #6b7280;">Back</button>
             </div>
           </div>
-        );
+        `;
       }
-
-      if (screen === 'realMode') {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-              <div className="text-center mb-6">
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">Real Multiplayer</h2>
-                <p className="text-gray-600">Play with friends online</p>
-              </div>
-              <div className="space-y-3">
-                <button onClick={createRoom} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-                  <Users size={24} /> Create Room
-                </button>
-                <div className="relative"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300"></div></div><div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">or</span></div></div>
-                <input type="text" placeholder="Enter room code" value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-lg text-center font-mono" maxLength={6} />
-                <button onClick={joinRoom} disabled={!roomCode.trim()} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-bold py-4 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-                  <Play size={24} /> Join Room
-                </button>
-                <button onClick={() => setScreen('menu')} className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-6 rounded-lg transition duration-200">Back</button>
-              </div>
-            </div>
+      
+      else if (state.screen === 'lobby') {
+        const playersHtml = state.players.map(p => `
+          <div class="player-card">
+            <div class="avatar">${p.name[0].toUpperCase()}</div>
+            <span style="font-weight: 600; color: #1f2937;">${p.name}</span>
+            ${p.isAI ? '<span class="badge badge-purple">AI</span>' : ''}
+            ${p.id === state.myPlayerId ? '<span class="badge badge-green">You</span>' : ''}
+            ${state.gameMode === 'real' && state.isHost && p.id === state.myPlayerId ? '<span class="badge" style="background: #fef08a; color: #854d0e;">Host</span>' : ''}
           </div>
-        );
-      }
-
-      if (screen === 'lobby') {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-              <h2 className="text-3xl font-bold text-center mb-4 text-gray-800">{gameMode === 'real' ? 'Waiting Room' : 'Players Ready!'}</h2>
-              {gameMode === 'real' && roomCode && (
-                <div className="bg-blue-100 border-2 border-blue-500 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-gray-600 mb-1 text-center">Room Code</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <p className="text-3xl font-bold text-blue-600 font-mono">{roomCode}</p>
-                    <button onClick={copyRoomCode} className="p-2 hover:bg-blue-200 rounded-lg transition" title="Copy code">
-                      {copied ? <Check size={20} className="text-green-600" /> : <Copy size={20} className="text-blue-600" />}
+        `).join('');
+        
+        app.innerHTML = `
+          <div class="bg-gradient">
+            <div class="card">
+              <h2 class="text-center mb-4">${state.gameMode === 'real' ? 'Waiting Room' : 'Players Ready!'}</h2>
+              ${state.gameMode === 'real' && state.roomCode ? `
+                <div style="background: #dbeafe; border: 2px solid #3b82f6; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; text-align: center;">
+                  <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Room Code</p>
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <p style="font-size: 1.875rem; font-weight: bold; color: #3b82f6; font-family: monospace;">${state.roomCode}</p>
+                    <button onclick="copyCode()" style="padding: 0.5rem; background: none; border: none; cursor: pointer; font-size: 1.25rem;">
+                      ${state.copied ? '✓' : '📋'}
                     </button>
                   </div>
-                  <p className="text-xs text-center text-gray-600 mt-2">Share this code with your friends!</p>
+                  <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">Share this code with your friends!</p>
                 </div>
-              )}
-              <div className="space-y-3 mb-6">
-                {players.map((player) => (
-                  <div key={player.id} className="bg-gray-100 rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">{player.name[0].toUpperCase()}</div>
-                    <span className="font-semibold text-gray-800">{player.name}</span>
-                    {player.isAI && <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded">AI</span>}
-                    {player.id === myPlayerId && <span className="text-xs bg-green-200 text-green-700 px-2 py-1 rounded">You</span>}
-                    {gameMode === 'real' && isHost && player.id === myPlayerId && <span className="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded">Host</span>}
-                  </div>
-                ))}
-              </div>
-              {gameMode === 'real' && isHost && (
-                <button onClick={startRealGame} disabled={players.length < 2} className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-bold py-4 px-6 rounded-lg transition duration-200 mb-2">
-                  {players.length < 2 ? 'Waiting for players...' : `Start Game (${players.length} players)`}
+              ` : ''}
+              <div class="mb-6">${playersHtml}</div>
+              ${state.gameMode === 'real' && state.isHost ? `
+                <button class="btn-blue mb-4" onclick="startRealGame()" ${state.players.length < 2 ? 'disabled' : ''} style="background: #22c55e;">
+                  ${state.players.length < 2 ? 'Waiting for players...' : `Start Game (${state.players.length} players)`}
                 </button>
-              )}
-              <div className="text-center text-gray-600">
-                <p className="animate-pulse">{gameMode === 'real' ? (isHost ? (players.length < 2 ? 'Waiting for more players...' : 'Ready to start!') : 'Waiting for host to start...') : 'Game starting soon...'}</p>
+              ` : ''}
+              <div class="text-center text-gray">
+                <p class="animate-pulse">${state.gameMode === 'real' ? (state.isHost ? (state.players.length < 2 ? 'Waiting for more players...' : 'Ready to start!') : 'Waiting for host to start...') : 'Game starting soon...'}</p>
               </div>
             </div>
           </div>
-        );
+        `;
       }
-
-      if (screen === 'game') {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 p-4">
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4">
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                  <div className="text-xl font-bold text-gray-800">Question {currentQuestion + 1}/10</div>
-                  <div className="flex gap-3 flex-wrap">
-                    {players.map(player => (
-                      <div key={player.id} className="text-center bg-gray-50 rounded-lg px-3 py-1">
-                        <div className="text-xs text-gray-600">{player.name}</div>
-                        <div className="text-xl font-bold text-blue-600">{scores[player.id] || 0}</div>
-                      </div>
-                    ))}
-                  </div>
+      
+      else if (state.screen === 'game') {
+        const animal = ANIMALS[state.currentQuestion];
+        const scoresHtml = state.players.map(p => `
+          <div class="score-box">
+            <div class="score-name">${p.name}</div>
+            <div class="score-value">${state.scores[p.id] || 0}</div>
+          </div>
+        `).join('');
+        
+        const optionsHtml = animal.options.map((emoji, idx) => {
+          let btnClass = 'emoji-btn';
+          if (state.answered && emoji === state.correctAnswer) btnClass += ' emoji-correct';
+          else if (state.answered && emoji !== state.correctAnswer) btnClass += ' emoji-wrong';
+          return `<button class="${btnClass}" onclick="handleAnswer('${emoji}')" ${state.answered ? 'disabled' : ''}>${emoji}</button>`;
+        }).join('');
+        
+        app.innerHTML = `
+          <div class="bg-gradient">
+            <div class="card card-lg">
+              <div class="game-header">
+                <div class="flex justify-between items-center flex-wrap mb-4">
+                  <div style="font-size: 1.25rem; font-weight: bold; color: #1f2937;">Question ${state.currentQuestion + 1}/10</div>
+                  <div class="flex gap-3 flex-wrap">${scoresHtml}</div>
                 </div>
-                <div className="bg-yellow-100 border-4 border-yellow-400 rounded-xl p-6 text-center mb-4">
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    <Volume2 size={32} className="text-yellow-600" />
-                    <span className="text-2xl font-bold text-gray-800">Listen to the sound!</span>
+                <div class="sound-box">
+                  <div class="flex items-center justify-center gap-3 mb-4">
+                    <span style="font-size: 2rem;">🔊</span>
+                    <span style="font-size: 1.5rem; font-weight: bold; color: #1f2937;">Listen to the sound!</span>
                   </div>
-                  <button onClick={playSound} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg">🔊 Play Again</button>
+                  <button class="btn-blue" onclick="playSound()" style="width: auto; padding: 0.5rem 1.5rem;">🔊 Play Again</button>
                 </div>
-                <div className="text-center mb-4"><div className="text-4xl font-bold text-red-500">⏱️ {timeLeft}s</div></div>
-                {winner && (
-                  <div className="bg-green-100 border-2 border-green-500 rounded-lg p-3 mb-4 text-center">
-                    <span className="text-green-700 font-bold">🎉 {winner} answered first!</span>
-                  </div>
-                )}
+                <div class="text-center mb-4">
+                  <div class="timer">⏱️ ${state.timeLeft}s</div>
+                </div>
+                ${state.winner ? `<div class="winner-box">🎉 ${state.winner} answered first!</div>` : ''}
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                {ANIMALS[currentQuestion].options.map((emoji, idx) => (
-                  <button key={idx} onClick={() => handleAnswer(emoji)} disabled={answered} className={`bg-white rounded-xl p-8 text-7xl hover:scale-105 transition duration-200 shadow-lg ${answered && emoji === correctAnswer ? 'ring-4 ring-green-500 bg-green-100' : ''} ${answered && emoji !== correctAnswer ? 'opacity-50' : ''} ${answered ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+              <div class="grid">${optionsHtml}</div>
             </div>
           </div>
-        );
+        `;
       }
-
-      if (screen === 'results') {
-        const sortedPlayers = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0));
-        const topPlayer = sortedPlayers[0];
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-              <div className="text-center mb-6">
-                <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">Game Over!</h2>
-                <p className="text-xl text-gray-600">Winner: {topPlayer.name}</p>
+      
+      else if (state.screen === 'results') {
+        const sorted = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
+        const resultsHtml = sorted.map((p, idx) => `
+          <div class="result-item">
+            <div class="flex items-center">
+              <div class="result-rank">#${idx + 1}</div>
+              <span style="font-weight: 600; color: #1f2937;">${p.name}</span>
+            </div>
+            <div class="result-score">${state.scores[p.id] || 0} pts</div>
+          </div>
+        `).join('');
+        
+        app.innerHTML = `
+          <div class="bg-gradient">
+            <div class="card">
+              <div class="text-center mb-6">
+                <div class="trophy mb-4">🏆</div>
+                <h2 class="mb-2">Game Over!</h2>
+                <p class="text-xl text-gray">Winner: ${sorted[0].name}</p>
               </div>
-              <div className="space-y-3 mb-6">
-                {sortedPlayers.map((player, idx) => (
-                  <div key={player.id} className="bg-gray-100 rounded-lg p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl font-bold text-gray-500">#{idx + 1}</div>
-                      <span className="font-semibold text-gray-800">{player.name}</span>
-                    </div>
-                    <div className="text-2xl font-bold text-blue-600">{scores[player.id] || 0} pts</div>
-                  </div>
-                ))}
-              </div>
-              <button onClick={resetGame} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200">Play Again</button>
+              <div class="mb-6">${resultsHtml}</div>
+              <button class="btn-blue" onclick="resetGame()">Play Again</button>
             </div>
           </div>
-        );
+        `;
       }
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<GuessTheAnimal />);
+    function startSimulatedGame() {
+      if (!state.playerName.trim()) return;
+      const playerId = 'player-' + Date.now();
+      state.myPlayerId = playerId;
+      state.gameMode = 'simulated';
+      state.players = [
+        { id: playerId, name: state.playerName, isAI: false },
+        { id: 'ai-1', name: 'Alex', isAI: true },
+        { id: 'ai-2', name: 'Jordan', isAI: true }
+      ];
+      state.scores = {};
+      state.players.forEach(p => { state.scores[p.id] = 0; });
+      state.screen = 'lobby';
+      render();
+      
+      setTimeout(() => {
+        state.screen = 'game';
+        render();
+        playSound();
+        startTimer();
+      }, 2000);
+    }
+
+    function generateRoomCode() {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    function createRoom() {
+      if (!state.playerName.trim() || !database) return;
+      const code = generateRoomCode();
+      const playerId = 'player-' + Date.now();
+      state.roomCode = code;
+      state.myPlayerId = playerId;
+      state.isHost = true;
+      state.gameMode = 'real';
+      
+      const player = { id: playerId, name: state.playerName, isAI: false };
+      const roomData = {
+        host: playerId,
+        players: { [playerId]: player },
+        scores: { [playerId]: 0 },
+        currentQuestion: 0,
+        started: false,
+        winner: null,
+        timeLeft: 5
+      };
+      
+      database.ref('rooms/' + code).set(roomData).then(() => {
+        state.players = [player];
+        state.scores = { [playerId]: 0 };
+        state.screen = 'lobby';
+        render();
+        listenToRoom(code);
+      }).catch(err => {
+        console.error('Error creating room:', err);
+        alert('Error creating room');
+      });
+    }
+
+    function joinRoom() {
+      const input = document.getElementById('roomCodeInput');
+      const code = input ? input.value.toUpperCase().trim() : '';
+      if (!code || !state.playerName.trim() || !database) return;
+      
+      const playerId = 'player-' + Date.now();
+      const roomRef = database.ref('rooms/' + code);
+      
+      roomRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          alert('Room not found!');
+          return;
+        }
+        
+        const roomData = snapshot.val();
+        if (roomData.started) {
+          alert('Game already started!');
+          return;
+        }
+        
+        const player = { id: playerId, name: state.playerName, isAI: false };
+        roomRef.update({
+          ['players/' + playerId]: player,
+          ['scores/' + playerId]: 0
+        }).then(() => {
+          state.roomCode = code;
+          state.myPlayerId = playerId;
+          state.isHost = false;
+          state.gameMode = 'real';
+          state.screen = 'lobby';
+          render();
+          listenToRoom(code);
+        });
+      }).catch(err => {
+        console.error('Error joining:', err);
+        alert('Error joining room');
+      });
+    }
+
+    function listenToRoom(code) {
+      if (!database) return;
+      const roomRef = database.ref('rooms/' + code);
+      
+      roomRef.on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.val();
+        
+        state.players = Object.values(data.players || {});
+        state.scores = data.scores || {};
+        
+        if (data.started && state.screen === 'lobby') {
+          state.screen = 'game';
+          render();
+          playSound();
+          if (state.isHost) startTimer();
+        }
+        
+        if (data.currentQuestion !== state.currentQuestion && state.screen === 'game') {
+          state.currentQuestion = data.currentQuestion;
+          state.timeLeft = 5;
+          state.answered = false;
+          state.correctAnswer = null;
+          state.winner = null;
+          render();
+          playSound();
+        }
+        
+        if (data.winner && state.screen === 'game') {
+          state.winner = data.winner;
+          state.answered = true;
+          state.correctAnswer = ANIMALS[data.currentQuestion].emoji;
+          render();
+        }
+        
+        if (data.ended && state.screen === 'game') {
+          state.screen = 'results';
+          render();
+        }
+        
+        if (state.screen === 'lobby') render();
+      });
+    }
+
+    function startRealGame() {
+      if (state.players.length < 2 || !database) return;
+      database.ref('rooms/' + state.roomCode).update({ started: true, currentQuestion: 0 });
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(state.roomCode);
+      state.copied = true;
+      render();
+      setTimeout(() => {
+        state.copied = false;
+        render();
+      }, 2000);
+    }
+
+    function backToMenu() {
+      state.screen = 'menu';
+      render();
+    }
+
+    function startGame() {
+      startSimulatedGame();
+    }
+
+    function playSound() {
+      const animal = ANIMALS[state.currentQuestion];
+      const utterance = new SpeechSynthesisUtterance(animal.name);
+      utterance.rate = 0.8;
+      utterance.pitch = 0.8;
+      speechSynthesis.speak(utterance);
+    }
+
+    function startTimer() {
+      if (state.timer) clearInterval(state.timer);
+      state.timer = setInterval(() => {
+        state.timeLeft--;
+        render();
+        if (state.timeLeft <= 0) {
+          clearInterval(state.timer);
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      const aiAnswered = state.players.find(p => p.isAI && Math.random() > 0.3);
+      if (aiAnswered) {
+        state.scores[aiAnswered.id]++;
+        state.winner = aiAnswered.name;
+      }
+      state.answered = true;
+      state.correctAnswer = ANIMALS[state.currentQuestion].emoji;
+      render();
+      setTimeout(nextQuestion, 2000);
+    }
+
+    function handleAnswer(emoji) {
+      if (state.answered) return;
+      clearInterval(state.timer);
+      
+      const animal = ANIMALS[state.currentQuestion];
+      const isCorrect = emoji === animal.emoji;
+      state.answered = true;
+      state.correctAnswer = animal.emoji;
+      
+      if (state.gameMode === 'real' && database) {
+        const roomRef = database.ref('rooms/' + state.roomCode);
+        roomRef.once('value').then(snapshot => {
+          const data = snapshot.val();
+          if (isCorrect && !data.winner) {
+            const newScores = { ...data.scores };
+            newScores[state.myPlayerId] = (newScores[state.myPlayerId] || 0) + 1;
+            roomRef.update({ winner: state.playerName, scores: newScores });
+            state.winner = state.playerName;
+            state.scores = newScores;
+          }
+          render();
+        });
+        
+        if (state.isHost) {
+          setTimeout(() => {
+            if (state.currentQuestion < ANIMALS.length - 1) {
+              roomRef.update({ 
+                currentQuestion: state.currentQuestion + 1, 
+                winner: null, 
+                timeLeft: 5 
+              });
+            } else {
+              roomRef.update({ ended: true });
+            }
+          }, 2000);
+        }
+      } else {
+        if (isCorrect) {
+          state.scores[state.myPlayerId]++;
+          state.winner = state.playerName;
+        } else {
+          const aiWinner = state.players.find(p => p.isAI);
+          if (aiWinner) {
+            state.scores[aiWinner.id]++;
+            state.winner = aiWinner.name;
+          }
+        }
+        render();
+        setTimeout(nextQuestion, 2000);
+      }
+    }
+
+    function nextQuestion() {
+      if (state.currentQuestion < ANIMALS.length - 1) {
+        state.currentQuestion++;
+        state.timeLeft = 5;
+        state.answered = false;
+        state.correctAnswer = null;
+        state.winner = null;
+        render();
+        playSound();
+        startTimer();
+      } else {
+        state.screen = 'results';
+        render();
+      }
+    }
+
+    function resetGame() {
+      if (state.timer) clearInterval(state.timer);
+      if (state.gameMode === 'real' && state.isHost && state.roomCode && database) {
+        database.ref('rooms/' + state.roomCode).remove();
+      }
+      state = {
+        screen: 'menu',
+        gameMode: null,
+        playerName: '',
+        players: [],
+        currentQuestion: 0,
+        timeLeft: 5,
+        scores: {},
+        answered: false,
+        correctAnswer: null,
+        winner: null,
+        myPlayerId: '',
+        timer: null,
+        roomCode: '',
+        isHost: false,
+        copied: false
+      };
+      render();
+    }
+
+    render();
   </script>
 </body>
 </html>
