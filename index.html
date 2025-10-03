@@ -83,17 +83,32 @@
     }
 
     const ANIMALS = [
-      { name: 'Lion', emoji: '🦁', options: ['🦁', '🐯', '🐻', '🐺', '🦊', '🐱'] },
-      { name: 'Elephant', emoji: '🐘', options: ['🐘', '🦏', '🦛', '🦒', '🐪', '🐃'] },
-      { name: 'Dog', emoji: '🐕', options: ['🐕', '🐺', '🦊', '🐱', '🦝', '🐹'] },
-      { name: 'Cat', emoji: '🐱', options: ['🐱', '🦁', '🐯', '🐆', '🐕', '🦊'] },
-      { name: 'Cow', emoji: '🐄', options: ['🐄', '🐃', '🐂', '🐎', '🐏', '🐐'] },
-      { name: 'Rooster', emoji: '🐓', options: ['🐓', '🦃', '🦆', '🦅', '🦉', '🐦'] },
-      { name: 'Frog', emoji: '🐸', options: ['🐸', '🐊', '🦎', '🐢', '🐍', '🦖'] },
-      { name: 'Owl', emoji: '🦉', options: ['🦉', '🦅', '🦆', '🐦', '🦜', '🐓'] },
-      { name: 'Horse', emoji: '🐎', options: ['🐎', '🦓', '🦌', '🐄', '🦙', '🐫'] },
-      { name: 'Monkey', emoji: '🐵', options: ['🐵', '🦍', '🦧', '🐻', '🦝', '🐨'] }
+      { name: 'Lion', emoji: '🦁', sound: './lion.wav', options: ['🦁', '🐯', '🐻', '🐺', '🦊', '🐱'] },
+      { name: 'Elephant', emoji: '🐘', sound: './elephant.wav', options: ['🐘', '🦏', '🦛', '🦒', '🐪', '🐃'] },
+      { name: 'Dog', emoji: '🐕', sound: './dog.wav', options: ['🐕', '🐺', '🦊', '🐱', '🦝', '🐹'] },
+      { name: 'Cat', emoji: '🐱', sound: './cat.wav', options: ['🐱', '🦁', '🐯', '🐆', '🐕', '🦊'] },
+      { name: 'Cow', emoji: '🐄', sound: './cow.wav', options: ['🐄', '🐃', '🐂', '🐎', '🐏', '🐐'] },
+      { name: 'Rooster', emoji: '🐓', sound: './rooster.wav', options: ['🐓', '🦃', '🦆', '🦅', '🦉', '🐦'] },
+      { name: 'Frog', emoji: '🐸', sound: './frog.wav', options: ['🐸', '🐊', '🦎', '🐢', '🐍', '🦖'] },
+      { name: 'Owl', emoji: '🦉', sound: './owl.wav', options: ['🦉', '🦅', '🦆', '🐦', '🦜', '🐓'] },
+      { name: 'Horse', emoji: '🐎', sound: './horse.wav', options: ['🐎', '🦓', '🦌', '🐄', '🦙', '🐫'] },
+      { name: 'Monkey', emoji: '🐵', sound: './monkey.wav', options: ['🐵', '🦍', '🦧', '🐻', '🦝', '🐨'] }
     ];
+
+    // Shuffle array function
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // Get shuffled options for current question
+    function getShuffledOptions(questionIndex) {
+      return shuffleArray(ANIMALS[questionIndex].options);
+    }
 
     let state = {
       screen: 'menu',
@@ -110,7 +125,8 @@
       timer: null,
       roomCode: '',
       isHost: false,
-      copied: false
+      copied: false,
+      shuffledOptions: []
     };
 
     function render() {
@@ -222,7 +238,13 @@
           </div>
         `).join('');
         
-        const optionsHtml = animal.options.map((emoji, idx) => {
+        // Use shuffled options or create new shuffle if not exists
+        if (!state.shuffledOptions[state.currentQuestion]) {
+          state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
+        }
+        
+        const shuffledOpts = state.shuffledOptions[state.currentQuestion];
+        const optionsHtml = shuffledOpts.map((emoji, idx) => {
           let btnClass = 'emoji-btn';
           if (state.answered && emoji === state.correctAnswer) btnClass += ' emoji-correct';
           else if (state.answered && emoji !== state.correctAnswer) btnClass += ' emoji-wrong';
@@ -295,6 +317,11 @@
       ];
       state.scores = {};
       state.players.forEach(p => { state.scores[p.id] = 0; });
+      state.shuffledOptions = [];
+      // Pre-shuffle all questions
+      for (let i = 0; i < ANIMALS.length; i++) {
+        state.shuffledOptions[i] = getShuffledOptions(i);
+      }
       state.screen = 'lobby';
       render();
       
@@ -398,6 +425,11 @@
           state.currentQuestion = data.currentQuestion || 0;
           state.timeLeft = 5;
           state.answered = false;
+          state.shuffledOptions = [];
+          // Pre-shuffle all questions for consistency
+          for (let i = 0; i < ANIMALS.length; i++) {
+            state.shuffledOptions[i] = getShuffledOptions(i);
+          }
           render();
           playSound();
           startLocalTimer();
@@ -410,6 +442,10 @@
           state.answered = false;
           state.correctAnswer = null;
           state.winner = null;
+          // Shuffle options for new question
+          if (!state.shuffledOptions[state.currentQuestion]) {
+            state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
+          }
           render();
           playSound();
           startLocalTimer();
@@ -523,10 +559,35 @@
 
     function playSound() {
       const animal = ANIMALS[state.currentQuestion];
-      const utterance = new SpeechSynthesisUtterance(animal.name);
-      utterance.rate = 0.8;
-      utterance.pitch = 0.8;
-      speechSynthesis.speak(utterance);
+      
+      // Create audio element
+      const audio = new Audio();
+      audio.src = animal.sound;
+      
+      // Add event listeners for debugging
+      audio.addEventListener('loadeddata', () => {
+        console.log('Audio loaded successfully:', animal.sound);
+      });
+      
+      audio.addEventListener('error', (e) => {
+        console.error('Audio error for', animal.sound, ':', e);
+        console.log('Falling back to text-to-speech');
+        // Fallback to text-to-speech
+        const utterance = new SpeechSynthesisUtterance(animal.name);
+        utterance.rate = 0.8;
+        utterance.pitch = 0.8;
+        speechSynthesis.speak(utterance);
+      });
+      
+      // Try to play
+      audio.play().catch(error => {
+        console.error('Play error:', error);
+        // Fallback to text-to-speech
+        const utterance = new SpeechSynthesisUtterance(animal.name);
+        utterance.rate = 0.8;
+        utterance.pitch = 0.8;
+        speechSynthesis.speak(utterance);
+      });
     }
 
     function startTimer() {
@@ -649,6 +710,8 @@
         state.answered = false;
         state.correctAnswer = null;
         state.winner = null;
+        // Shuffle options for the new question
+        state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
         render();
         playSound();
         startTimer();
@@ -678,7 +741,8 @@
         timer: null,
         roomCode: '',
         isHost: false,
-        copied: false
+        copied: false,
+        shuffledOptions: []
       };
       render();
     }
