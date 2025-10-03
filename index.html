@@ -374,8 +374,6 @@ function generateRoomCode() {
       const playerId = 'player-' + Date.now();
       state.myPlayerId = playerId;
       state.gameMode = 'real';
-      state.screen = 'matching';
-      render();
       
       const openRoomsRef = database.ref('openRooms');
       
@@ -429,10 +427,18 @@ function generateRoomCode() {
         database.ref('rooms/' + code).set(roomData).then(() => {
           state.players = [player];
           state.scores = { [playerId]: 0 };
+          state.shuffledOptions = [];
+          // Pre-shuffle all questions
+          for (let i = 0; i < ANIMALS.length; i++) {
+            state.shuffledOptions[i] = getShuffledOptions(i);
+          }
           state.screen = 'lobby';
           render();
           listenToRoom(code);
         });
+      }).catch(error => {
+        console.error('Error creating room:', error);
+        alert('Error creating room. Please try again.');
       });
     }
 
@@ -457,28 +463,49 @@ function generateRoomCode() {
           return;
         }
         
+        const playerCount = Object.keys(roomData.players || {}).length;
+        if (playerCount >= 4) {
+          // Room is full, create new one
+          createOpenRoom(playerId);
+          return;
+        }
+        
         const player = { id: playerId, name: state.playerName, isAI: false };
         
         // Add player to room
-        roomRef.update({
+        const updates = {
           [`players/${playerId}`]: player,
           [`scores/${playerId}`]: 0
-        }).then(() => {
-          state.roomCode = code;
-          state.myPlayerId = playerId;
-          state.isHost = false;
-          state.screen = 'lobby';
-          render();
-          listenToRoom(code);
-          
-          // Check if room is now full (4 players)
-          roomRef.once('value').then(snap => {
-            const data = snap.val();
-            if (Object.keys(data.players || {}).length >= 4) {
-              // Remove from open rooms if full
-              openRoomRef.remove();
+        };
+        
+        roomRef.update(updates).then(() => {
+          // Also update openRooms
+          openRoomRef.update(updates).then(() => {
+            state.roomCode = code;
+            state.myPlayerId = playerId;
+            state.isHost = false;
+            state.shuffledOptions = [];
+            // Pre-shuffle all questions
+            for (let i = 0; i < ANIMALS.length; i++) {
+              state.shuffledOptions[i] = getShuffledOptions(i);
             }
+            state.screen = 'lobby';
+            render();
+            listenToRoom(code);
+            
+            // Check if room is now full (4 players)
+            roomRef.once('value').then(snap => {
+              const data = snap.val();
+              if (Object.keys(data.players || {}).length >= 4) {
+                // Remove from open rooms if full
+                openRoomRef.remove();
+              }
+            });
           });
+        }).catch(error => {
+          console.error('Error joining room:', error);
+          // If join fails, create new room
+          createOpenRoom(playerId);
         });
       });
     }
