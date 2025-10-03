@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+function generateRoomCode() {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -126,7 +128,8 @@
       roomCode: '',
       isHost: false,
       copied: false,
-      shuffledOptions: []
+      shuffledOptions: [],
+      matchmakingListener: null
     };
 
     function render() {
@@ -150,8 +153,8 @@
                   <div style="font-size: 0.75rem; opacity: 0.8;">Instant start, AI opponents</div>
                 </button>
                 <button id="multiBtn" class="btn-blue" disabled>
-                  📡 Real Multiplayer
-                  <div style="font-size: 0.75rem; opacity: 0.8;">Play across devices</div>
+                  📡 Play Online
+                  <div style="font-size: 0.75rem; opacity: 0.8;">Auto-match with real players</div>
                 </button>
               </div>
             </div>
@@ -167,7 +170,35 @@
           multiBtn.disabled = !e.target.value.trim();
         });
         aiBtn.addEventListener('click', () => startSimulatedGame());
-        multiBtn.addEventListener('click', () => { state.screen = 'realMode'; render(); });
+        multiBtn.addEventListener('click', () => autoMatchmaking());
+      }
+      
+      else if (state.screen === 'matching') {
+        app.innerHTML = `
+          <div class="bg-gradient">
+            <div class="card">
+              <div class="text-center">
+                <div style="width: 5rem; height: 5rem; background: #3b82f6; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+                  <span style="font-size: 2.5rem;">🔍</span>
+                </div>
+                <h2 class="mb-4">Finding Players...</h2>
+                <p class="text-gray">Searching for opponents worldwide</p>
+                <div style="margin-top: 1.5rem;">
+                  <div style="height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden;">
+                    <div style="height: 100%; background: #3b82f6; animation: loading 2s infinite;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <style>
+            @keyframes loading {
+              0% { width: 0%; }
+              50% { width: 70%; }
+              100% { width: 100%; }
+            }
+          </style>
+        `;
       }
       
       else if (state.screen === 'realMode') {
@@ -178,10 +209,10 @@
                 <h2 class="mb-2">Real Multiplayer</h2>
                 <p class="text-gray">Play with friends online</p>
               </div>
-              <button class="btn-blue mb-4" onclick="createRoom()">👥 Create Room</button>
+              <button class="btn-blue mb-4" onclick="createRoom()">👥 Create Private Room</button>
               <div style="text-align: center; margin: 1rem 0; color: #6b7280;">or</div>
               <input type="text" id="roomCodeInput" placeholder="Enter room code" maxlength="6" style="text-transform: uppercase; text-align: center; font-family: monospace; margin-bottom: 0.75rem;">
-              <button class="btn-blue mb-4" onclick="joinRoom()" style="background: #22c55e;">▶️ Join Room</button>
+              <button class="btn-blue mb-4" onclick="joinRoom()" style="background: #22c55e;">▶️ Join Private Room</button>
               <button class="btn-blue" onclick="backToMenu()" style="background: #6b7280;">Back</button>
             </div>
           </div>
@@ -203,27 +234,31 @@
           <div class="bg-gradient">
             <div class="card">
               <h2 class="text-center mb-4">${state.gameMode === 'real' ? 'Waiting Room' : 'Players Ready!'}</h2>
-              ${state.gameMode === 'real' && state.roomCode ? `
+              ${state.gameMode === 'real' && state.roomCode && state.isHost ? `
                 <div style="background: #dbeafe; border: 2px solid #3b82f6; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; text-align: center;">
-                  <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Room Code</p>
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                    <p style="font-size: 1.875rem; font-weight: bold; color: #3b82f6; font-family: monospace;">${state.roomCode}</p>
-                    <button onclick="copyCode()" style="padding: 0.5rem; background: none; border: none; cursor: pointer; font-size: 1.25rem;">
-                      ${state.copied ? '✓' : '📋'}
-                    </button>
-                  </div>
-                  <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">Share this code with your friends!</p>
+                  <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">🎮 You are the host!</p>
+                  <p style="font-size: 0.875rem; color: #6b7280;">Waiting for players to join...</p>
+                  <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">Players: ${state.players.length}/4</p>
+                </div>
+              ` : ''}
+              ${state.gameMode === 'real' && !state.isHost ? `
+                <div style="background: #dcfce7; border: 2px solid #22c55e; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; text-align: center;">
+                  <p style="font-size: 0.875rem; color: #15803d;">✅ Connected!</p>
+                  <p style="font-size: 0.75rem; color: #15803d; margin-top: 0.25rem;">Waiting for host to start the game...</p>
                 </div>
               ` : ''}
               <div class="mb-6">${playersHtml}</div>
               ${state.gameMode === 'real' && state.isHost ? `
-                <button class="btn-blue mb-4" onclick="startRealGame()" ${state.players.length < 2 ? 'disabled' : ''} style="background: #22c55e;">
-                  ${state.players.length < 2 ? 'Waiting for players...' : `Start Game (${state.players.length} players)`}
+                <button class="btn-blue mb-4" onclick="startRealGame()" style="background: #22c55e;">
+                  🎮 Start Game (${state.players.length} ${state.players.length === 1 ? 'player' : 'players'})
                 </button>
+                <p style="text-align: center; font-size: 0.875rem; color: #6b7280;">Game can start with 1+ players</p>
               ` : ''}
-              <div class="text-center text-gray">
-                <p class="animate-pulse">${state.gameMode === 'real' ? (state.isHost ? (state.players.length < 2 ? 'Waiting for more players...' : 'Ready to start!') : 'Waiting for host to start...') : 'Game starting soon...'}</p>
-              </div>
+              ${state.gameMode === 'simulated' ? `
+                <div class="text-center text-gray">
+                  <p class="animate-pulse">Game starting soon...</p>
+                </div>
+              ` : ''}
             </div>
           </div>
         `;
@@ -333,8 +368,119 @@
       }, 2000);
     }
 
-    function generateRoomCode() {
-      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    function autoMatchmaking() {
+      if (!state.playerName.trim() || !database) return;
+      
+      const playerId = 'player-' + Date.now();
+      state.myPlayerId = playerId;
+      state.gameMode = 'real';
+      state.screen = 'matching';
+      render();
+      
+      const openRoomsRef = database.ref('openRooms');
+      
+      // First, check if there's an available room to join
+      openRoomsRef.orderByChild('created').limitToFirst(1).once('value', snapshot => {
+        let foundRoom = false;
+        
+        snapshot.forEach(child => {
+          const roomCode = child.key;
+          const roomData = child.val();
+          
+          // Check if room is still open and not full (max 4 players)
+          const playerCount = Object.keys(roomData.players || {}).length;
+          if (!roomData.started && playerCount < 4) {
+            foundRoom = true;
+            joinAvailableRoom(roomCode, playerId);
+          }
+        });
+        
+        // If no room found, create a new one (become host)
+        if (!foundRoom) {
+          createOpenRoom(playerId);
+        }
+      });
+    }
+
+    function createOpenRoom(playerId) {
+      if (!database) return;
+      
+      const code = generateRoomCode();
+      state.roomCode = code;
+      state.myPlayerId = playerId;
+      state.isHost = true;
+      
+      const player = { id: playerId, name: state.playerName, isAI: false };
+      
+      const roomData = {
+        host: playerId,
+        players: { [playerId]: player },
+        scores: { [playerId]: 0 },
+        currentQuestion: 0,
+        started: false,
+        winner: null,
+        answeredCorrectly: false,
+        timeoutTriggered: false,
+        created: Date.now()
+      };
+      
+      // Add to both openRooms and rooms
+      database.ref('openRooms/' + code).set(roomData).then(() => {
+        database.ref('rooms/' + code).set(roomData).then(() => {
+          state.players = [player];
+          state.scores = { [playerId]: 0 };
+          state.screen = 'lobby';
+          render();
+          listenToRoom(code);
+        });
+      });
+    }
+
+    function joinAvailableRoom(code, playerId) {
+      if (!database) return;
+      
+      const roomRef = database.ref('rooms/' + code);
+      const openRoomRef = database.ref('openRooms/' + code);
+      
+      roomRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          // Room no longer exists, create new one
+          createOpenRoom(playerId);
+          return;
+        }
+        
+        const roomData = snapshot.val();
+        
+        if (roomData.started) {
+          // Game already started, create new room
+          createOpenRoom(playerId);
+          return;
+        }
+        
+        const player = { id: playerId, name: state.playerName, isAI: false };
+        
+        // Add player to room
+        roomRef.update({
+          [`players/${playerId}`]: player,
+          [`scores/${playerId}`]: 0
+        }).then(() => {
+          state.roomCode = code;
+          state.myPlayerId = playerId;
+          state.isHost = false;
+          state.screen = 'lobby';
+          render();
+          listenToRoom(code);
+          
+          // Check if room is now full (4 players)
+          roomRef.once('value').then(snap => {
+            const data = snap.val();
+            if (Object.keys(data.players || {}).length >= 4) {
+              // Remove from open rooms if full
+              openRoomRef.remove();
+            }
+          });
+        });
+      });
     }
 
     function createRoom() {
@@ -725,6 +871,7 @@
       if (state.timer) clearInterval(state.timer);
       if (state.gameMode === 'real' && state.isHost && state.roomCode && database) {
         database.ref('rooms/' + state.roomCode).remove();
+        database.ref('openRooms/' + state.roomCode).remove();
       }
       state = {
         screen: 'menu',
@@ -742,7 +889,8 @@
         roomCode: '',
         isHost: false,
         copied: false,
-        shuffledOptions: []
+        shuffledOptions: [],
+        matchmakingListener: null
       };
       render();
     }
