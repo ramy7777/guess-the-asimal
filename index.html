@@ -1,17 +1,23 @@
-function generateRoomCode() {
-      return Math.random().toString(36).substring(2, 8).toUpperCase();
-    }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guess the Animal</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    .bg-gradient { min-height: 100vh; background: linear-gradient(135deg, #34d399 0%, #3b82f6 50%, #a855f7 100%); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow-x: hidden; }
+    .bg-gradient { min-height: 100vh; background: linear-gradient(135deg, #34d399 0%, #3b82f6 50%, #a855f7 100%); display: flex; align-items: center; justify-content: center; padding: 0.5rem; }
     .card { background: white; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); padding: 2rem; max-width: 28rem; width: 100%; }
-    .card-lg { max-width: 64rem; }
+    .card-lg { max-width: 64rem; width: 100%; }
+    @media (max-width: 768px) {
+      .bg-gradient { padding: 0.25rem; }
+      .card, .card-lg { padding: 0.75rem; max-width: 100%; margin: 0; border-radius: 1rem; }
+      h1 { font-size: 1.5rem !important; }
+      h2 { font-size: 1.25rem !important; }
+    }
     .text-center { text-align: center; }
     .mb-2 { margin-bottom: 0.5rem; }
     .mb-4 { margin-bottom: 1rem; }
@@ -21,40 +27,89 @@ function generateRoomCode() {
     h2 { font-size: 1.875rem; font-weight: bold; color: #1f2937; }
     .text-gray { color: #6b7280; }
     .text-xl { font-size: 1.25rem; }
+    @media (max-width: 768px) {
+      .text-xl { font-size: 1rem; }
+    }
     input { width: 100%; padding: 0.75rem 1rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1.125rem; outline: none; }
     input:focus { border-color: #3b82f6; }
     button { width: 100%; padding: 1rem 1.5rem; font-weight: bold; border-radius: 0.5rem; border: none; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+    @media (max-width: 768px) {
+      button { padding: 0.75rem 1rem; font-size: 0.875rem; }
+    }
     button:disabled { background: #d1d5db; cursor: not-allowed; }
     .btn-purple { background: #a855f7; color: white; }
     .btn-purple:hover:not(:disabled) { background: #9333ea; }
     .btn-blue { background: #3b82f6; color: white; }
     .btn-blue:hover { background: #2563eb; }
-    .player-card { background: #f3f4f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-    .avatar { width: 2.5rem; height: 2.5rem; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-    .badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+    .player-card { background: #f3f4f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    @media (max-width: 768px) {
+      .player-card { padding: 0.5rem; gap: 0.5rem; }
+    }
+    .avatar { width: 2.5rem; height: 2.5rem; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; }
+    @media (max-width: 768px) {
+      .avatar { width: 2rem; height: 2rem; font-size: 0.875rem; }
+    }
+    .badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; white-space: nowrap; }
     .badge-purple { background: #e9d5ff; color: #7e22ce; }
     .badge-green { background: #bbf7d0; color: #15803d; }
     .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     .game-header { background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; }
-    .score-box { text-align: center; background: #f9fafb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
+    @media (max-width: 768px) {
+      .game-header { padding: 0.75rem; margin-bottom: 0.5rem; }
+    }
+    .score-box { text-align: center; background: #f9fafb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; min-width: 60px; }
+    @media (max-width: 768px) {
+      .score-box { padding: 0.25rem 0.5rem; min-width: 50px; }
+    }
     .score-name { font-size: 0.75rem; color: #6b7280; }
     .score-value { font-size: 1.25rem; font-weight: bold; color: #3b82f6; }
+    @media (max-width: 768px) {
+      .score-name { font-size: 0.625rem; }
+      .score-value { font-size: 1rem; }
+    }
     .sound-box { background: #fef3c7; border: 4px solid #fbbf24; border-radius: 0.75rem; padding: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    @media (max-width: 768px) {
+      .sound-box { padding: 0.75rem; border: 2px solid #fbbf24; }
+    }
     .timer { font-size: 2.25rem; font-weight: bold; color: #ef4444; }
+    @media (max-width: 768px) {
+      .timer { font-size: 1.5rem; }
+    }
     .winner-box { background: #dcfce7; border: 2px solid #22c55e; border-radius: 0.5rem; padding: 0.75rem; text-align: center; margin-bottom: 1rem; color: #15803d; font-weight: bold; }
+    @media (max-width: 768px) {
+      .winner-box { padding: 0.5rem; font-size: 0.875rem; }
+    }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 768px) {
+      .grid { gap: 0.5rem; }
+    }
     .emoji-btn { background: white; border-radius: 0.75rem; padding: 2rem; font-size: 4rem; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; border: none; }
+    @media (max-width: 768px) {
+      .emoji-btn { padding: 0.75rem; font-size: 2rem; border-radius: 0.5rem; }
+    }
     .emoji-btn:hover:not(:disabled) { transform: scale(1.05); }
     .emoji-btn:disabled { cursor: not-allowed; }
     .emoji-correct { box-shadow: 0 0 0 4px #22c55e; background: #dcfce7; }
     .emoji-wrong { opacity: 0.5; }
     .result-item { background: #f3f4f6; border-radius: 0.5rem; padding: 1rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    @media (max-width: 768px) {
+      .result-item { padding: 0.5rem; }
+    }
     .result-rank { font-size: 1.5rem; font-weight: bold; color: #6b7280; margin-right: 0.75rem; }
     .result-score { font-size: 1.5rem; font-weight: bold; color: #3b82f6; }
+    @media (max-width: 768px) {
+      .result-rank, .result-score { font-size: 1.125rem; }
+    }
     .trophy { font-size: 4rem; }
+    @media (max-width: 768px) {
+      .trophy { font-size: 2.5rem; }
+    }
     .flex { display: flex; }
     .gap-3 { gap: 0.75rem; }
+    @media (max-width: 768px) {
+      .gap-3 { gap: 0.5rem; }
+    }
     .flex-wrap { flex-wrap: wrap; }
     .justify-between { justify-content: space-between; }
     .items-center { align-items: center; }
@@ -63,8 +118,6 @@ function generateRoomCode() {
 <body>
   <div id="app"></div>
   
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <script>
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyApv5F-IZHODQdRTC4mhRyn8tucQ7-nbMc",
@@ -80,6 +133,7 @@ function generateRoomCode() {
     try {
       firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
       database = firebase.database();
+      console.log('Firebase initialized successfully');
     } catch (error) {
       console.error('Firebase init error:', error);
     }
@@ -97,7 +151,6 @@ function generateRoomCode() {
       { name: 'Monkey', emoji: '🐵', sound: './monkey.wav', options: ['🐵', '🦍', '🦧', '🐻', '🦝', '🐨'] }
     ];
 
-    // Shuffle array function
     function shuffleArray(array) {
       const shuffled = [...array];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -107,9 +160,12 @@ function generateRoomCode() {
       return shuffled;
     }
 
-    // Get shuffled options for current question
     function getShuffledOptions(questionIndex) {
       return shuffleArray(ANIMALS[questionIndex].options);
+    }
+
+    function generateRoomCode() {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
     }
 
     let state = {
@@ -127,9 +183,7 @@ function generateRoomCode() {
       timer: null,
       roomCode: '',
       isHost: false,
-      copied: false,
-      shuffledOptions: [],
-      matchmakingListener: null
+      shuffledOptions: []
     };
 
     function render() {
@@ -171,52 +225,6 @@ function generateRoomCode() {
         });
         aiBtn.addEventListener('click', () => startSimulatedGame());
         multiBtn.addEventListener('click', () => autoMatchmaking());
-      }
-      
-      else if (state.screen === 'matching') {
-        app.innerHTML = `
-          <div class="bg-gradient">
-            <div class="card">
-              <div class="text-center">
-                <div style="width: 5rem; height: 5rem; background: #3b82f6; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
-                  <span style="font-size: 2.5rem;">🔍</span>
-                </div>
-                <h2 class="mb-4">Finding Players...</h2>
-                <p class="text-gray">Searching for opponents worldwide</p>
-                <div style="margin-top: 1.5rem;">
-                  <div style="height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden;">
-                    <div style="height: 100%; background: #3b82f6; animation: loading 2s infinite;"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <style>
-            @keyframes loading {
-              0% { width: 0%; }
-              50% { width: 70%; }
-              100% { width: 100%; }
-            }
-          </style>
-        `;
-      }
-      
-      else if (state.screen === 'realMode') {
-        app.innerHTML = `
-          <div class="bg-gradient">
-            <div class="card">
-              <div class="text-center mb-6">
-                <h2 class="mb-2">Real Multiplayer</h2>
-                <p class="text-gray">Play with friends online</p>
-              </div>
-              <button class="btn-blue mb-4" onclick="createRoom()">👥 Create Private Room</button>
-              <div style="text-align: center; margin: 1rem 0; color: #6b7280;">or</div>
-              <input type="text" id="roomCodeInput" placeholder="Enter room code" maxlength="6" style="text-transform: uppercase; text-align: center; font-family: monospace; margin-bottom: 0.75rem;">
-              <button class="btn-blue mb-4" onclick="joinRoom()" style="background: #22c55e;">▶️ Join Private Room</button>
-              <button class="btn-blue" onclick="backToMenu()" style="background: #6b7280;">Back</button>
-            </div>
-          </div>
-        `;
       }
       
       else if (state.screen === 'lobby') {
@@ -273,7 +281,6 @@ function generateRoomCode() {
           </div>
         `).join('');
         
-        // Use shuffled options or create new shuffle if not exists
         if (!state.shuffledOptions[state.currentQuestion]) {
           state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
         }
@@ -313,8 +320,9 @@ function generateRoomCode() {
       }
       
       else if (state.screen === 'results') {
-        const sorted = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
-        const resultsHtml = sorted.map((p, idx) => `
+        const sortedPlayers = [...state.players].sort((a, b) => (state.scores[b.id] || 0) - (state.scores[a.id] || 0));
+        const topPlayer = sortedPlayers[0];
+        const resultsHtml = sortedPlayers.map((p, idx) => `
           <div class="result-item">
             <div class="flex items-center">
               <div class="result-rank">#${idx + 1}</div>
@@ -330,7 +338,7 @@ function generateRoomCode() {
               <div class="text-center mb-6">
                 <div class="trophy mb-4">🏆</div>
                 <h2 class="mb-2">Game Over!</h2>
-                <p class="text-xl text-gray">Winner: ${sorted[0].name}</p>
+                <p class="text-xl text-gray">Winner: ${topPlayer.name}</p>
               </div>
               <div class="mb-6">${resultsHtml}</div>
               <button class="btn-blue" onclick="resetGame()">Play Again</button>
@@ -353,7 +361,6 @@ function generateRoomCode() {
       state.scores = {};
       state.players.forEach(p => { state.scores[p.id] = 0; });
       state.shuffledOptions = [];
-      // Pre-shuffle all questions
       for (let i = 0; i < ANIMALS.length; i++) {
         state.shuffledOptions[i] = getShuffledOptions(i);
       }
@@ -369,7 +376,20 @@ function generateRoomCode() {
     }
 
     function autoMatchmaking() {
-      if (!state.playerName.trim() || !database) return;
+      console.log('Play Online clicked');
+      
+      if (!state.playerName.trim()) {
+        alert('Please enter your name first!');
+        return;
+      }
+      
+      if (!database) {
+        alert('Firebase is not connected. Please check your internet connection and try again.');
+        console.error('Firebase database is not available');
+        return;
+      }
+      
+      console.log('Starting matchmaking for:', state.playerName);
       
       const playerId = 'player-' + Date.now();
       state.myPlayerId = playerId;
@@ -377,26 +397,31 @@ function generateRoomCode() {
       
       const openRoomsRef = database.ref('openRooms');
       
-      // First, check if there's an available room to join
       openRoomsRef.orderByChild('created').limitToFirst(1).once('value', snapshot => {
+        console.log('Checking for available rooms...');
         let foundRoom = false;
         
         snapshot.forEach(child => {
           const roomCode = child.key;
           const roomData = child.val();
           
-          // Check if room is still open and not full (max 4 players)
+          console.log('Found room:', roomCode, 'with', Object.keys(roomData.players || {}).length, 'players');
+          
           const playerCount = Object.keys(roomData.players || {}).length;
           if (!roomData.started && playerCount < 4) {
             foundRoom = true;
+            console.log('Joining room:', roomCode);
             joinAvailableRoom(roomCode, playerId);
           }
         });
         
-        // If no room found, create a new one (become host)
         if (!foundRoom) {
+          console.log('No available room found, creating new room...');
           createOpenRoom(playerId);
         }
+      }).catch(error => {
+        console.error('Error checking rooms:', error);
+        alert('Error connecting. Please check your Firebase setup and try again.');
       });
     }
 
@@ -422,20 +447,19 @@ function generateRoomCode() {
         created: Date.now()
       };
       
-      // Add to both openRooms and rooms
       database.ref('openRooms/' + code).set(roomData).then(() => {
-        database.ref('rooms/' + code).set(roomData).then(() => {
-          state.players = [player];
-          state.scores = { [playerId]: 0 };
-          state.shuffledOptions = [];
-          // Pre-shuffle all questions
-          for (let i = 0; i < ANIMALS.length; i++) {
-            state.shuffledOptions[i] = getShuffledOptions(i);
-          }
-          state.screen = 'lobby';
-          render();
-          listenToRoom(code);
-        });
+        return database.ref('rooms/' + code).set(roomData);
+      }).then(() => {
+        console.log('Room created successfully:', code);
+        state.players = [player];
+        state.scores = { [playerId]: 0 };
+        state.shuffledOptions = [];
+        for (let i = 0; i < ANIMALS.length; i++) {
+          state.shuffledOptions[i] = getShuffledOptions(i);
+        }
+        state.screen = 'lobby';
+        render();
+        listenToRoom(code);
       }).catch(error => {
         console.error('Error creating room:', error);
         alert('Error creating room. Please try again.');
@@ -450,7 +474,7 @@ function generateRoomCode() {
       
       roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
-          // Room no longer exists, create new one
+          console.log('Room no longer exists, creating new one');
           createOpenRoom(playerId);
           return;
         }
@@ -458,127 +482,50 @@ function generateRoomCode() {
         const roomData = snapshot.val();
         
         if (roomData.started) {
-          // Game already started, create new room
+          console.log('Game already started, creating new room');
           createOpenRoom(playerId);
           return;
         }
         
         const playerCount = Object.keys(roomData.players || {}).length;
         if (playerCount >= 4) {
-          // Room is full, create new one
+          console.log('Room is full, creating new room');
           createOpenRoom(playerId);
           return;
         }
         
         const player = { id: playerId, name: state.playerName, isAI: false };
         
-        // Add player to room
         const updates = {
           [`players/${playerId}`]: player,
           [`scores/${playerId}`]: 0
         };
         
         roomRef.update(updates).then(() => {
-          // Also update openRooms
-          openRoomRef.update(updates).then(() => {
-            state.roomCode = code;
-            state.myPlayerId = playerId;
-            state.isHost = false;
-            state.shuffledOptions = [];
-            // Pre-shuffle all questions
-            for (let i = 0; i < ANIMALS.length; i++) {
-              state.shuffledOptions[i] = getShuffledOptions(i);
-            }
-            state.screen = 'lobby';
-            render();
-            listenToRoom(code);
-            
-            // Check if room is now full (4 players)
-            roomRef.once('value').then(snap => {
-              const data = snap.val();
-              if (Object.keys(data.players || {}).length >= 4) {
-                // Remove from open rooms if full
-                openRoomRef.remove();
-              }
-            });
-          });
-        }).catch(error => {
-          console.error('Error joining room:', error);
-          // If join fails, create new room
-          createOpenRoom(playerId);
-        });
-      });
-    }
-
-    function createRoom() {
-      if (!state.playerName.trim() || !database) return;
-      const code = generateRoomCode();
-      const playerId = 'player-' + Date.now();
-      state.roomCode = code;
-      state.myPlayerId = playerId;
-      state.isHost = true;
-      state.gameMode = 'real';
-      
-      const player = { id: playerId, name: state.playerName, isAI: false };
-      const roomData = {
-        host: playerId,
-        players: { [playerId]: player },
-        scores: { [playerId]: 0 },
-        currentQuestion: 0,
-        started: false,
-        winner: null,
-        answeredCorrectly: false,
-        timeoutTriggered: false
-      };
-      
-      database.ref('rooms/' + code).set(roomData).then(() => {
-        state.players = [player];
-        state.scores = { [playerId]: 0 };
-        state.screen = 'lobby';
-        render();
-        listenToRoom(code);
-      }).catch(err => {
-        console.error('Error creating room:', err);
-        alert('Error creating room');
-      });
-    }
-
-    function joinRoom() {
-      const input = document.getElementById('roomCodeInput');
-      const code = input ? input.value.toUpperCase().trim() : '';
-      if (!code || !state.playerName.trim() || !database) return;
-      
-      const playerId = 'player-' + Date.now();
-      const roomRef = database.ref('rooms/' + code);
-      
-      roomRef.once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-          alert('Room not found!');
-          return;
-        }
-        
-        const roomData = snapshot.val();
-        if (roomData.started) {
-          alert('Game already started!');
-          return;
-        }
-        
-        const player = { id: playerId, name: state.playerName, isAI: false };
-        roomRef.update({
-          ['players/' + playerId]: player,
-          ['scores/' + playerId]: 0
+          return openRoomRef.update(updates);
         }).then(() => {
+          console.log('Joined room successfully:', code);
           state.roomCode = code;
           state.myPlayerId = playerId;
           state.isHost = false;
-          state.gameMode = 'real';
+          state.shuffledOptions = [];
+          for (let i = 0; i < ANIMALS.length; i++) {
+            state.shuffledOptions[i] = getShuffledOptions(i);
+          }
           state.screen = 'lobby';
           render();
           listenToRoom(code);
+          
+          roomRef.once('value').then(snap => {
+            const data = snap.val();
+            if (Object.keys(data.players || {}).length >= 4) {
+              openRoomRef.remove();
+            }
+          });
+        }).catch(error => {
+          console.error('Error joining room:', error);
+          createOpenRoom(playerId);
         });
-      }).catch(err => {
-        console.error('Error joining:', err);
-        alert('Error joining room');
       });
     }
 
@@ -598,10 +545,10 @@ function generateRoomCode() {
           state.currentQuestion = data.currentQuestion || 0;
           state.timeLeft = 5;
           state.answered = false;
-          state.shuffledOptions = [];
-          // Pre-shuffle all questions for consistency
-          for (let i = 0; i < ANIMALS.length; i++) {
-            state.shuffledOptions[i] = getShuffledOptions(i);
+          if (!state.shuffledOptions.length) {
+            for (let i = 0; i < ANIMALS.length; i++) {
+              state.shuffledOptions[i] = getShuffledOptions(i);
+            }
           }
           render();
           playSound();
@@ -615,7 +562,6 @@ function generateRoomCode() {
           state.answered = false;
           state.correctAnswer = null;
           state.winner = null;
-          // Shuffle options for new question
           if (!state.shuffledOptions[state.currentQuestion]) {
             state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
           }
@@ -642,6 +588,50 @@ function generateRoomCode() {
       });
     }
 
+    function startRealGame() {
+      if (!database) return;
+      
+      if (state.roomCode) {
+        database.ref('openRooms/' + state.roomCode).remove();
+      }
+      
+      database.ref('rooms/' + state.roomCode).update({ started: true, currentQuestion: 0 });
+    }
+
+    function playSound() {
+      const animal = ANIMALS[state.currentQuestion];
+      const audio = new Audio();
+      audio.src = animal.sound;
+      
+      audio.addEventListener('error', (e) => {
+        console.log('Audio file not found, using text-to-speech');
+        const utterance = new SpeechSynthesisUtterance(animal.name);
+        utterance.rate = 0.8;
+        utterance.pitch = 0.8;
+        speechSynthesis.speak(utterance);
+      });
+      
+      audio.play().catch(error => {
+        console.log('Play error, using text-to-speech');
+        const utterance = new SpeechSynthesisUtterance(animal.name);
+        utterance.rate = 0.8;
+        utterance.pitch = 0.8;
+        speechSynthesis.speak(utterance);
+      });
+    }
+
+    function startTimer() {
+      if (state.timer) clearInterval(state.timer);
+      state.timer = setInterval(() => {
+        state.timeLeft--;
+        render();
+        if (state.timeLeft <= 0) {
+          clearInterval(state.timer);
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
     function startLocalTimer() {
       if (state.timer) clearInterval(state.timer);
       
@@ -661,6 +651,18 @@ function generateRoomCode() {
       }, 1000);
     }
 
+    function handleTimeout() {
+      const aiAnswered = state.players.find(p => p.isAI && Math.random() > 0.3);
+      if (aiAnswered) {
+        state.scores[aiAnswered.id]++;
+        state.winner = aiAnswered.name;
+      }
+      state.answered = true;
+      state.correctAnswer = ANIMALS[state.currentQuestion].emoji;
+      render();
+      setTimeout(nextQuestion, 2000);
+    }
+
     function handleMultiplayerTimeout() {
       if (!database || state.answered) return;
       
@@ -670,21 +672,19 @@ function generateRoomCode() {
       
       const roomRef = database.ref('rooms/' + state.roomCode);
       
-      // Use transaction to ensure only one player progresses the game
       roomRef.transaction(function(room) {
         if (!room || room.currentQuestion !== state.currentQuestion) {
-          return; // Abort if question already changed
+          return;
         }
         
         if (!room.timeoutTriggered) {
           room.timeoutTriggered = true;
           return room;
         }
-        return; // Abort if timeout already triggered
+        return;
       }, function(error, committed, snapshot) {
         if (error || !committed) return;
         
-        // This player won the race to trigger timeout
         setTimeout(() => {
           roomRef.once('value').then(snap => {
             const currentData = snap.val();
@@ -706,87 +706,6 @@ function generateRoomCode() {
       });
     }
 
-    function startRealGame() {
-      if (state.players.length < 2 || !database) return;
-      database.ref('rooms/' + state.roomCode).update({ started: true, currentQuestion: 0 });
-    }
-
-    function copyCode() {
-      navigator.clipboard.writeText(state.roomCode);
-      state.copied = true;
-      render();
-      setTimeout(() => {
-        state.copied = false;
-        render();
-      }, 2000);
-    }
-
-    function backToMenu() {
-      state.screen = 'menu';
-      render();
-    }
-
-    function startGame() {
-      startSimulatedGame();
-    }
-
-    function playSound() {
-      const animal = ANIMALS[state.currentQuestion];
-      
-      // Create audio element
-      const audio = new Audio();
-      audio.src = animal.sound;
-      
-      // Add event listeners for debugging
-      audio.addEventListener('loadeddata', () => {
-        console.log('Audio loaded successfully:', animal.sound);
-      });
-      
-      audio.addEventListener('error', (e) => {
-        console.error('Audio error for', animal.sound, ':', e);
-        console.log('Falling back to text-to-speech');
-        // Fallback to text-to-speech
-        const utterance = new SpeechSynthesisUtterance(animal.name);
-        utterance.rate = 0.8;
-        utterance.pitch = 0.8;
-        speechSynthesis.speak(utterance);
-      });
-      
-      // Try to play
-      audio.play().catch(error => {
-        console.error('Play error:', error);
-        // Fallback to text-to-speech
-        const utterance = new SpeechSynthesisUtterance(animal.name);
-        utterance.rate = 0.8;
-        utterance.pitch = 0.8;
-        speechSynthesis.speak(utterance);
-      });
-    }
-
-    function startTimer() {
-      if (state.timer) clearInterval(state.timer);
-      state.timer = setInterval(() => {
-        state.timeLeft--;
-        render();
-        if (state.timeLeft <= 0) {
-          clearInterval(state.timer);
-          handleTimeout();
-        }
-      }, 1000);
-    }
-
-    function handleTimeout() {
-      const aiAnswered = state.players.find(p => p.isAI && Math.random() > 0.3);
-      if (aiAnswered) {
-        state.scores[aiAnswered.id]++;
-        state.winner = aiAnswered.name;
-      }
-      state.answered = true;
-      state.correctAnswer = ANIMALS[state.currentQuestion].emoji;
-      render();
-      setTimeout(nextQuestion, 2000);
-    }
-
     function handleAnswer(emoji) {
       if (state.answered) return;
       if (state.timer) clearInterval(state.timer);
@@ -797,16 +716,10 @@ function generateRoomCode() {
       if (state.gameMode === 'real' && database) {
         const roomRef = database.ref('rooms/' + state.roomCode);
         
-        // Use transaction to ensure only first correct answer wins
         roomRef.transaction(function(room) {
           if (!room) return room;
+          if (room.winner) return;
           
-          // If there's already a winner for this question, don't update
-          if (room.winner) {
-            return; // Abort transaction
-          }
-          
-          // If this is a correct answer
           if (isCorrect) {
             room.winner = state.playerName;
             room.winnerId = state.myPlayerId;
@@ -833,7 +746,6 @@ function generateRoomCode() {
           
           render();
           
-          // If correct answer, progress immediately after 2 seconds
           if (committed && isCorrect) {
             setTimeout(() => {
               roomRef.once('value').then(snap => {
@@ -847,7 +759,7 @@ function generateRoomCode() {
                     winnerId: null,
                     timeLeft: 5,
                     answeredCorrectly: false,
-                    timeoutProcessed: false
+                    timeoutTriggered: false
                   });
                 } else {
                   roomRef.update({ ended: true });
@@ -857,7 +769,6 @@ function generateRoomCode() {
           }
         });
       } else {
-        // Simulated mode
         state.answered = true;
         state.correctAnswer = animal.emoji;
         
@@ -883,8 +794,9 @@ function generateRoomCode() {
         state.answered = false;
         state.correctAnswer = null;
         state.winner = null;
-        // Shuffle options for the new question
-        state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
+        if (!state.shuffledOptions[state.currentQuestion]) {
+          state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
+        }
         render();
         playSound();
         startTimer();
@@ -915,9 +827,7 @@ function generateRoomCode() {
         timer: null,
         roomCode: '',
         isHost: false,
-        copied: false,
-        shuffledOptions: [],
-        matchmakingListener: null
+        shuffledOptions: []
       };
       render();
     }
