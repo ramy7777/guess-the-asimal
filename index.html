@@ -174,7 +174,7 @@
       playerName: '',
       players: [],
       currentQuestion: 0,
-      timeLeft: 5,
+      timeLeft: 8,
       scores: {},
       answered: false,
       correctAnswer: null,
@@ -543,7 +543,7 @@
         if (data.started && state.screen === 'lobby') {
           state.screen = 'game';
           state.currentQuestion = data.currentQuestion || 0;
-          state.timeLeft = 5;
+          state.timeLeft = 8;
           state.answered = false;
           if (!state.shuffledOptions.length) {
             for (let i = 0; i < ANIMALS.length; i++) {
@@ -558,7 +558,7 @@
         if (data.currentQuestion !== state.currentQuestion && state.screen === 'game') {
           if (state.timer) clearInterval(state.timer);
           state.currentQuestion = data.currentQuestion;
-          state.timeLeft = 5;
+          state.timeLeft = 8;
           state.answered = false;
           state.correctAnswer = null;
           state.winner = null;
@@ -757,7 +757,7 @@
                     currentQuestion: state.currentQuestion + 1, 
                     winner: null,
                     winnerId: null,
-                    timeLeft: 5,
+                    timeLeft: 8,
                     answeredCorrectly: false,
                     timeoutTriggered: false
                   });
@@ -790,7 +790,7 @@
     function nextQuestion() {
       if (state.currentQuestion < ANIMALS.length - 1) {
         state.currentQuestion++;
-        state.timeLeft = 5;
+        state.timeLeft = 8;
         state.answered = false;
         state.correctAnswer = null;
         state.winner = null;
@@ -818,7 +818,7 @@
         playerName: '',
         players: [],
         currentQuestion: 0,
-        timeLeft: 5,
+        timeLeft: 8,
         scores: {},
         answered: false,
         correctAnswer: null,
