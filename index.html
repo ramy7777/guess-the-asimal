@@ -203,7 +203,7 @@
       playerName: '',
       players: [],
       currentQuestion: 0,
-      timeLeft: 5,
+      timeLeft: 6,
       scores: {},
       answered: false,
       correctAnswer: null,
@@ -469,6 +469,13 @@
       
       const player = { id: playerId, name: state.playerName, isAI: false };
       
+      const gameSequence = ANIMALS.map(animal => ({
+        name: animal.name,
+        emoji: animal.emoji,
+        sound: animal.sound,
+        options: animal.options
+      }));
+      
       const roomData = {
         host: playerId,
         players: { [playerId]: player },
@@ -478,7 +485,8 @@
         winner: null,
         answeredCorrectly: false,
         timeoutTriggered: false,
-        created: Date.now()
+        created: Date.now(),
+        gameSequence: gameSequence
       };
       
       database.ref('openRooms/' + code).set(roomData).then(() => {
@@ -489,7 +497,7 @@
         state.scores = { [playerId]: 0 };
         state.shuffledOptions = [];
         for (let i = 0; i < ANIMALS.length; i++) {
-          state.shuffledOptions[i] = getShuffledOptions(i);
+          state.shuffledOptions[i] = ANIMALS[i].options;
         }
         state.screen = 'lobby';
         render();
@@ -502,8 +510,6 @@
 
     function joinAvailableRoom(code, playerId) {
       if (!database) return;
-      
-      initializeGame();
       
       const roomRef = database.ref('rooms/' + code);
       const openRoomRef = database.ref('openRooms/' + code);
@@ -530,6 +536,10 @@
           return;
         }
         
+        if (roomData.gameSequence) {
+          ANIMALS = roomData.gameSequence;
+        }
+        
         const player = { id: playerId, name: state.playerName, isAI: false };
         
         const updates = {
@@ -546,7 +556,7 @@
           state.isHost = false;
           state.shuffledOptions = [];
           for (let i = 0; i < ANIMALS.length; i++) {
-            state.shuffledOptions[i] = getShuffledOptions(i);
+            state.shuffledOptions[i] = ANIMALS[i].options;
           }
           state.screen = 'lobby';
           render();
@@ -573,19 +583,23 @@
         if (!snapshot.exists()) return;
         const data = snapshot.val();
         
+        if (data.gameSequence && data.gameSequence.length > 0) {
+          ANIMALS = data.gameSequence;
+        }
+        
         state.players = Object.values(data.players || {});
         state.scores = data.scores || {};
         
         if (data.started && state.screen === 'lobby') {
           state.screen = 'game';
           state.currentQuestion = data.currentQuestion || 0;
-          state.timeLeft = 5;
+          state.timeLeft = 6;
           state.answered = false;
           state.winner = null;
           state.correctAnswer = null;
           if (!state.shuffledOptions.length) {
             for (let i = 0; i < ANIMALS.length; i++) {
-              state.shuffledOptions[i] = getShuffledOptions(i);
+              state.shuffledOptions[i] = ANIMALS[i].options;
             }
           }
           render();
@@ -596,12 +610,12 @@
         if (data.currentQuestion !== state.currentQuestion && state.screen === 'game') {
           if (state.timer) clearInterval(state.timer);
           state.currentQuestion = data.currentQuestion;
-          state.timeLeft = 5;
+          state.timeLeft = 6;
           state.answered = false;
           state.correctAnswer = null;
           state.winner = null;
           if (!state.shuffledOptions[state.currentQuestion]) {
-            state.shuffledOptions[state.currentQuestion] = getShuffledOptions(state.currentQuestion);
+            state.shuffledOptions[state.currentQuestion] = ANIMALS[state.currentQuestion].options;
           }
           render();
           playSound();
