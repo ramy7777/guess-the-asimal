@@ -138,18 +138,40 @@
       console.error('Firebase init error:', error);
     }
 
-    const ANIMALS = [
-      { name: 'Lion', emoji: '🦁', sound: './lion.wav', options: ['🦁', '🐯', '🐻', '🐺', '🦊', '🐱'] },
-      { name: 'Elephant', emoji: '🐘', sound: './elephant.wav', options: ['🐘', '🦏', '🦛', '🦒', '🐪', '🐃'] },
-      { name: 'Dog', emoji: '🐕', sound: './dog.wav', options: ['🐕', '🐺', '🦊', '🐱', '🦝', '🐹'] },
-      { name: 'Cat', emoji: '🐱', sound: './cat.wav', options: ['🐱', '🦁', '🐯', '🐆', '🐕', '🦊'] },
-      { name: 'Cow', emoji: '🐄', sound: './cow.wav', options: ['🐄', '🐃', '🐂', '🐎', '🐏', '🐐'] },
-      { name: 'Rooster', emoji: '🐓', sound: './rooster.wav', options: ['🐓', '🦃', '🦆', '🦅', '🦉', '🐦'] },
-      { name: 'Frog', emoji: '🐸', sound: './frog.wav', options: ['🐸', '🐊', '🦎', '🐢', '🐍', '🦖'] },
-      { name: 'Owl', emoji: '🦉', sound: './owl.wav', options: ['🦉', '🦅', '🦆', '🐦', '🦜', '🐓'] },
-      { name: 'Horse', emoji: '🐎', sound: './horse.wav', options: ['🐎', '🦓', '🦌', '🐄', '🦙', '🐫'] },
-      { name: 'Monkey', emoji: '🐵', sound: './monkey.wav', options: ['🐵', '🦍', '🦧', '🐻', '🦝', '🐨'] }
+    const ALL_EMOJIS = ['🦁', '🐯', '🐻', '🐺', '🦊', '🐱', '🐘', '🦏', '🦛', '🦒', '🐪', '🐃', '🐕', '🦝', '🐹', '🐆', '🐄', '🐂', '🐎', '🐖', '🐏', '🐓', '🦃', '🦆', '🦅', '🦉', '🦜', '🐸', '🐊', '🦎', '🐢', '🐍', '🦖', '🐦', '🦓', '🦌', '🦙', '🫏', '🐵', '🦍', '🦧', '🐨', '🐷', '🐗', '🐽', '🐑', '🐐', '🐝', '🪰', '🪲', '🦋', '🐞', '🦗', '🦢', '🐧', '🦚'];
+
+    const BASE_ANIMALS = [
+      { name: 'Lion', emoji: '🦁', sound: './lion.wav' },
+      { name: 'Elephant', emoji: '🐘', sound: './elephant.wav' },
+      { name: 'Dog', emoji: '🐕', sound: './dog.wav' },
+      { name: 'Cat', emoji: '🐱', sound: './cat.wav' },
+      { name: 'Cow', emoji: '🐄', sound: './cow.wav' },
+      { name: 'Rooster', emoji: '🐓', sound: './rooster.wav' },
+      { name: 'Frog', emoji: '🐸', sound: './frog.wav' },
+      { name: 'Owl', emoji: '🦉', sound: './owl.wav' },
+      { name: 'Horse', emoji: '🐎', sound: './horse.wav' },
+      { name: 'Monkey', emoji: '🐵', sound: './monkey.wav' },
+      { name: 'Pig', emoji: '🐷', sound: './pig.wav' },
+      { name: 'Sheep', emoji: '🐑', sound: './sheep.wav' },
+      { name: 'Duck', emoji: '🦆', sound: './duck.wav' },
+      { name: 'Bee', emoji: '🐝', sound: './bee.wav' },
+      { name: 'Wolf', emoji: '🐺', sound: './wolf.wav' },
+      { name: 'Goat', emoji: '🐐', sound: './goat.wav' },
+      { name: 'Turkey', emoji: '🦃', sound: './turkey.wav' },
+      { name: 'Donkey', emoji: '🫏', sound: './donkey.wav' },
+      { name: 'Crow', emoji: '🦅', sound: './crow.wav' },
+      { name: 'Snake', emoji: '🐍', sound: './snake.wav' }
     ];
+
+    function generateRandomOptions(correctEmoji) {
+      const available = ALL_EMOJIS.filter(e => e !== correctEmoji);
+      const shuffled = shuffleArray(available);
+      const randomOptions = shuffled.slice(0, 5);
+      randomOptions.push(correctEmoji);
+      return shuffleArray(randomOptions);
+    }
+
+    let ANIMALS = [];
 
     function shuffleArray(array) {
       const shuffled = [...array];
@@ -158,6 +180,13 @@
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
       return shuffled;
+    }
+
+    function initializeGame() {
+      ANIMALS = shuffleArray(BASE_ANIMALS).map(animal => ({
+        ...animal,
+        options: generateRandomOptions(animal.emoji)
+      }));
     }
 
     function getShuffledOptions(questionIndex) {
@@ -298,7 +327,7 @@
             <div class="card card-lg">
               <div class="game-header">
                 <div class="flex justify-between items-center flex-wrap mb-4">
-                  <div style="font-size: 1.25rem; font-weight: bold; color: #1f2937;">Question ${state.currentQuestion + 1}/10</div>
+                  <div style="font-size: 1.25rem; font-weight: bold; color: #1f2937;">Question ${state.currentQuestion + 1}/20</div>
                   <div class="flex gap-3 flex-wrap">${scoresHtml}</div>
                 </div>
                 <div class="sound-box">
@@ -350,6 +379,9 @@
 
     function startSimulatedGame() {
       if (!state.playerName.trim()) return;
+      
+      initializeGame();
+      
       const playerId = 'player-' + Date.now();
       state.myPlayerId = playerId;
       state.gameMode = 'simulated';
@@ -428,6 +460,8 @@
     function createOpenRoom(playerId) {
       if (!database) return;
       
+      initializeGame();
+      
       const code = generateRoomCode();
       state.roomCode = code;
       state.myPlayerId = playerId;
@@ -468,6 +502,8 @@
 
     function joinAvailableRoom(code, playerId) {
       if (!database) return;
+      
+      initializeGame();
       
       const roomRef = database.ref('rooms/' + code);
       const openRoomRef = database.ref('openRooms/' + code);
@@ -543,7 +579,7 @@
         if (data.started && state.screen === 'lobby') {
           state.screen = 'game';
           state.currentQuestion = data.currentQuestion || 0;
-          state.timeLeft = 8;
+          state.timeLeft = 5;
           state.answered = false;
           if (!state.shuffledOptions.length) {
             for (let i = 0; i < ANIMALS.length; i++) {
@@ -558,7 +594,7 @@
         if (data.currentQuestion !== state.currentQuestion && state.screen === 'game') {
           if (state.timer) clearInterval(state.timer);
           state.currentQuestion = data.currentQuestion;
-          state.timeLeft = 8;
+          state.timeLeft = 5;
           state.answered = false;
           state.correctAnswer = null;
           state.winner = null;
@@ -757,7 +793,7 @@
                     currentQuestion: state.currentQuestion + 1, 
                     winner: null,
                     winnerId: null,
-                    timeLeft: 8,
+                    timeLeft: 5,
                     answeredCorrectly: false,
                     timeoutTriggered: false
                   });
@@ -790,7 +826,7 @@
     function nextQuestion() {
       if (state.currentQuestion < ANIMALS.length - 1) {
         state.currentQuestion++;
-        state.timeLeft = 8;
+        state.timeLeft = 5;
         state.answered = false;
         state.correctAnswer = null;
         state.winner = null;
@@ -818,7 +854,7 @@
         playerName: '',
         players: [],
         currentQuestion: 0,
-        timeLeft: 8,
+        timeLeft: 5,
         scores: {},
         answered: false,
         correctAnswer: null,
