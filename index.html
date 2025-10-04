@@ -203,7 +203,7 @@
       playerName: '',
       players: [],
       currentQuestion: 0,
-      timeLeft: 8,
+      timeLeft: 5,
       scores: {},
       answered: false,
       correctAnswer: null,
@@ -581,6 +581,8 @@
           state.currentQuestion = data.currentQuestion || 0;
           state.timeLeft = 5;
           state.answered = false;
+          state.winner = null;
+          state.correctAnswer = null;
           if (!state.shuffledOptions.length) {
             for (let i = 0; i < ANIMALS.length; i++) {
               state.shuffledOptions[i] = getShuffledOptions(i);
@@ -606,7 +608,7 @@
           startLocalTimer();
         }
         
-        if (data.winner && state.screen === 'game' && !state.answered) {
+        if (data.winner && state.screen === 'game') {
           if (state.timer) clearInterval(state.timer);
           state.winner = data.winner;
           state.answered = true;
@@ -752,58 +754,62 @@
       if (state.gameMode === 'real' && database) {
         const roomRef = database.ref('rooms/' + state.roomCode);
         
-        roomRef.transaction(function(room) {
-          if (!room) return room;
-          if (room.winner) return;
-          
-          if (isCorrect) {
+        if (isCorrect) {
+          roomRef.transaction(function(room) {
+            if (!room) return room;
+            if (room.winner) return;
+            
             room.winner = state.playerName;
             room.winnerId = state.myPlayerId;
             room.scores = room.scores || {};
             room.scores[state.myPlayerId] = (room.scores[state.myPlayerId] || 0) + 1;
             room.answeredCorrectly = true;
-          }
-          
-          return room;
-        }, function(error, committed, snapshot) {
-          if (error) {
-            console.error('Transaction error:', error);
-            return;
-          }
-          
-          const data = snapshot.val();
+            
+            return room;
+          }, function(error, committed, snapshot) {
+            if (error) {
+              console.error('Transaction error:', error);
+              return;
+            }
+            
+            const data = snapshot.val();
+            state.answered = true;
+            state.correctAnswer = animal.emoji;
+            
+            if (committed) {
+              state.winner = state.playerName;
+              state.scores = data.scores;
+            }
+            
+            render();
+            
+            if (committed) {
+              setTimeout(() => {
+                roomRef.once('value').then(snap => {
+                  const currentData = snap.val();
+                  if (!currentData || currentData.currentQuestion !== state.currentQuestion) return;
+                  
+                  if (state.currentQuestion < ANIMALS.length - 1) {
+                    roomRef.update({ 
+                      currentQuestion: state.currentQuestion + 1, 
+                      winner: null,
+                      winnerId: null,
+                      timeLeft: 5,
+                      answeredCorrectly: false,
+                      timeoutTriggered: false
+                    });
+                  } else {
+                    roomRef.update({ ended: true });
+                  }
+                });
+              }, 2000);
+            }
+          });
+        } else {
           state.answered = true;
           state.correctAnswer = animal.emoji;
-          
-          if (committed && isCorrect) {
-            state.winner = state.playerName;
-            state.scores = data.scores;
-          }
-          
           render();
-          
-          if (committed && isCorrect) {
-            setTimeout(() => {
-              roomRef.once('value').then(snap => {
-                const currentData = snap.val();
-                if (!currentData || currentData.currentQuestion !== state.currentQuestion) return;
-                
-                if (state.currentQuestion < ANIMALS.length - 1) {
-                  roomRef.update({ 
-                    currentQuestion: state.currentQuestion + 1, 
-                    winner: null,
-                    winnerId: null,
-                    timeLeft: 5,
-                    answeredCorrectly: false,
-                    timeoutTriggered: false
-                  });
-                } else {
-                  roomRef.update({ ended: true });
-                }
-              });
-            }, 2000);
-          }
-        });
+        }
       } else {
         state.answered = true;
         state.correctAnswer = animal.emoji;
